@@ -13,12 +13,19 @@
     h2 { color:#f9d71c; margin:30px 0 15px; font-size:1.55em; }
     .scroll { overflow-x:auto; }
     table { width:100%; border-collapse:collapse; background:white; color:#111; border-radius:12px; overflow:hidden; box-shadow:0 8px 25px rgba(0,0,0,0.25); }
-    th { background:#076a21; color:white; padding:12px 10px; text-align:left; font-size:0.95em; }
-    td { padding:10px 10px; border-bottom:1px solid #eee; font-size:0.93em; text-align:center; }
+    th { background:#076a21; color:white; padding:11px 8px; text-align:left; font-size:0.92em; }
+    td { padding:9px 8px; border-bottom:1px solid #eee; font-size:0.9em; text-align:center; }
     td:first-child, th:first-child { text-align:left; }
     .top3 { background:#fff8d6 !important; font-weight:700; }
     .btn { background:#f9d71c; color:#0a3d1f; padding:15px 32px; border-radius:50px; text-decoration:none; font-weight:700; display:inline-block; margin:25px 0; font-size:1.05em; box-shadow:0 4px 12px rgba(249,215,28,0.35); }
-    .note { font-size:0.9em; opacity:0.85; text-align:center; margin-top:10px; }
+    .note { font-size:0.88em; opacity:0.85; text-align:center; margin-top:18px; }
+    
+    @media (max-width: 768px) {
+      .week-col { display: none; }
+      .week-col.recent { display: table-cell; }
+      .toggle-btn { display: inline-block; }
+    }
+    .toggle-btn { display: none; background:#f9d71c; color:#0a3d1f; padding:9px 18px; border-radius:30px; text-decoration:none; font-weight:600; font-size:0.9em; margin: 12px auto; }
   </style>
 </head>
 <body>
@@ -29,69 +36,81 @@
 
   <div class="container">
     <h2>Current Standings (After Week 2)</h2>
+    
     <div class="scroll">
       <table>
         <tr>
           <th>Rank</th>
           <th>Player</th>
-          <th>W1</th>
-          <th>W2</th>
+          <th class="week-col recent">W1</th>
+          <th class="week-col recent">W2</th>
           <th>Total</th>
         </tr>
-        <tr class="top3"><td>1</td><td>Chris K</td><td>21</td><td>42</td><td><strong>63</strong></td></tr>
-        <tr class="top3"><td>2</td><td>Adrian</td><td>22</td><td>39</td><td><strong>61</strong></td></tr>
-        <tr class="top3"><td>2</td><td>Dan W</td><td>20</td><td>41</td><td><strong>61</strong></td></tr>
-        <tr><td>4</td><td>SJ</td><td>18</td><td>38</td><td><strong>56</strong></td></tr>
-        <tr><td>4</td><td>Rob C</td><td>19</td><td>37</td><td><strong>56</strong></td></tr>
-        <tr><td>6</td><td>Ethan B</td><td>16</td><td>33</td><td><strong>49</strong></td></tr>
-        <tr><td>7</td><td>Ian F</td><td>17</td><td>31</td><td><strong>48</strong></td></tr>
-        <tr><td>8</td><td>Aidan H</td><td>14</td><td>29</td><td><strong>43</strong></td></tr>
-        <tr><td>9</td><td>Alden T</td><td>15</td><td>26</td><td><strong>41</strong></td></tr>
-        <tr><td>10</td><td>Landon</td><td>0</td><td>40</td><td><strong>40</strong></td></tr>
-        <tr><td>11</td><td>Mike D</td><td>0</td><td>36</td><td><strong>36</strong></td></tr>
-        <tr><td>11</td><td>Dewayne E</td><td>13</td><td>23</td><td><strong>36</strong></td></tr>
-        <tr><td>13</td><td>Pat V</td><td>0</td><td>35</td><td><strong>35</strong></td></tr>
-        <tr><td>14</td><td>Corey</td><td>0</td><td>34</td><td><strong>34</strong></td></tr>
-        <tr><td>14</td><td>Leigh S</td><td>12</td><td>22</td><td><strong>34</strong></td></tr>
-        <tr><td>16</td><td>Jonathan H</td><td>0</td><td>32</td><td><strong>32</strong></td></tr>
-        <tr><td>17</td><td>Chris H</td><td>0</td><td>30</td><td><strong>30</strong></td></tr>
-        <tr><td>18</td><td>Paul F</td><td>0</td><td>28</td><td><strong>28</strong></td></tr>
-        <tr><td>19</td><td>Marc T</td><td>0</td><td>27</td><td><strong>27</strong></td></tr>
-        <tr><td>19</td><td>Zev</td><td>10</td><td>17</td><td><strong>27</strong></td></tr>
-        <tr><td>21</td><td>Lloyd R</td><td>0</td><td>26</td><td><strong>26</strong></td></tr>
-        <tr><td>22</td><td>Ryan S</td><td>0</td><td>25</td><td><strong>25</strong></td></tr>
-        <tr><td>23</td><td>Manny</td><td>0</td><td>24</td><td><strong>24</strong></td></tr>
-        <tr><td>24</td><td>Stephen</td><td>8</td><td>15</td><td><strong>23</strong></td></tr>
-        <tr><td>25</td><td>Rish</td><td>0</td><td>21</td><td><strong>21</strong></td></tr>
-        <tr><td>26</td><td>Darim</td><td>0</td><td>20</td><td><strong>20</strong></td></tr>
-        <tr><td>27</td><td>Hongda Y</td><td>0</td><td>19</td><td><strong>19</strong></td></tr>
-        <tr><td>27</td><td>Kris L</td><td>11</td><td>8</td><td><strong>19</strong></td></tr>
-        <tr><td>27</td><td>Tim L</td><td>7</td><td>12</td><td><strong>19</strong></td></tr>
-        <tr><td>30</td><td>Dwayne</td><td>0</td><td>18</td><td><strong>18</strong></td></tr>
-        <tr><td>31</td><td>Ope A</td><td>0</td><td>16</td><td><strong>16</strong></td></tr>
-        <tr><td>31</td><td>Will M</td><td>6</td><td>10</td><td><strong>16</strong></td></tr>
-        <tr><td>31</td><td>Pilar</td><td>6</td><td>10</td><td><strong>16</strong></td></tr>
-        <tr><td>34</td><td>Stephen Li</td><td>0</td><td>14</td><td><strong>14</strong></td></tr>
-        <tr><td>35</td><td>Evangeline</td><td>0</td><td>11</td><td><strong>11</strong></td></tr>
-        <tr><td>36</td><td>Mitch G</td><td>0</td><td>9</td><td><strong>9</strong></td></tr>
-        <tr><td>36</td><td>Jaden P</td><td>0</td><td>9</td><td><strong>9</strong></td></tr>
-        <tr><td>38</td><td>Janice</td><td>0</td><td>7</td><td><strong>7</strong></td></tr>
-        <tr><td>38</td><td>Andrea B</td><td>4</td><td>3</td><td><strong>7</strong></td></tr>
-        <tr><td>40</td><td>Brian T</td><td>0</td><td>6</td><td><strong>6</strong></td></tr>
-        <tr><td>41</td><td>Martin G</td><td>0</td><td>5</td><td><strong>5</strong></td></tr>
-        <tr><td>42</td><td>Mehak</td><td>1</td><td>2</td><td><strong>3</strong></td></tr>
-        <tr><td>42</td><td>Jarred L</td><td>3</td><td>0</td><td><strong>3</strong></td></tr>
-        <tr><td>44</td><td>Darren B</td><td>0</td><td>2</td><td><strong>2</strong></td></tr>
-        <tr><td>45</td><td>Eleazar</td><td>0</td><td>1</td><td><strong>1</strong></td></tr>
-        <tr><td>45</td><td>Nancy</td><td>0</td><td>1</td><td><strong>1</strong></td></tr>
+        <tr class="top3"><td>1</td><td>Chris K</td><td class="week-col recent">21</td><td class="week-col recent">42</td><td><strong>63</strong></td></tr>
+        <tr class="top3"><td>2</td><td>Adrian</td><td class="week-col recent">22</td><td class="week-col recent">39</td><td><strong>61</strong></td></tr>
+        <tr class="top3"><td>2</td><td>Dan W</td><td class="week-col recent">20</td><td class="week-col recent">41</td><td><strong>61</strong></td></tr>
+        <tr><td>4</td><td>SJ</td><td class="week-col recent">18</td><td class="week-col recent">38</td><td><strong>56</strong></td></tr>
+        <tr><td>4</td><td>Rob C</td><td class="week-col recent">19</td><td class="week-col recent">37</td><td><strong>56</strong></td></tr>
+        <tr><td>6</td><td>Ethan B</td><td class="week-col recent">16</td><td class="week-col recent">33</td><td><strong>49</strong></td></tr>
+        <tr><td>7</td><td>Ian F</td><td class="week-col recent">17</td><td class="week-col recent">31</td><td><strong>48</strong></td></tr>
+        <tr><td>8</td><td>Aidan H</td><td class="week-col recent">14</td><td class="week-col recent">29</td><td><strong>43</strong></td></tr>
+        <tr><td>9</td><td>Alden T</td><td class="week-col recent">15</td><td class="week-col recent">26</td><td><strong>41</strong></td></tr>
+        <tr><td>10</td><td>Landon</td><td class="week-col recent">0</td><td class="week-col recent">40</td><td><strong>40</strong></td></tr>
+        <tr><td>11</td><td>Mike D</td><td class="week-col recent">0</td><td class="week-col recent">36</td><td><strong>36</strong></td></tr>
+        <tr><td>11</td><td>Dewayne E</td><td class="week-col recent">13</td><td class="week-col recent">23</td><td><strong>36</strong></td></tr>
+        <tr><td>13</td><td>Pat V</td><td class="week-col recent">0</td><td class="week-col recent">35</td><td><strong>35</strong></td></tr>
+        <tr><td>14</td><td>Corey</td><td class="week-col recent">0</td><td class="week-col recent">34</td><td><strong>34</strong></td></tr>
+        <tr><td>14</td><td>Leigh S</td><td class="week-col recent">12</td><td class="week-col recent">22</td><td><strong>34</strong></td></tr>
+        <tr><td>16</td><td>Jonathan H</td><td class="week-col recent">0</td><td class="week-col recent">32</td><td><strong>32</strong></td></tr>
+        <tr><td>17</td><td>Chris H</td><td class="week-col recent">0</td><td class="week-col recent">30</td><td><strong>30</strong></td></tr>
+        <tr><td>18</td><td>Paul F</td><td class="week-col recent">0</td><td class="week-col recent">28</td><td><strong>28</strong></td></tr>
+        <tr><td>19</td><td>Marc T</td><td class="week-col recent">0</td><td class="week-col recent">27</td><td><strong>27</strong></td></tr>
+        <tr><td>19</td><td>Zev</td><td class="week-col recent">10</td><td class="week-col recent">17</td><td><strong>27</strong></td></tr>
+        <tr><td>21</td><td>Lloyd R</td><td class="week-col recent">0</td><td class="week-col recent">26</td><td><strong>26</strong></td></tr>
+        <tr><td>22</td><td>Ryan S</td><td class="week-col recent">0</td><td class="week-col recent">25</td><td><strong>25</strong></td></tr>
+        <tr><td>23</td><td>Manny</td><td class="week-col recent">0</td><td class="week-col recent">24</td><td><strong>24</strong></td></tr>
+        <tr><td>24</td><td>Stephen</td><td class="week-col recent">8</td><td class="week-col recent">15</td><td><strong>23</strong></td></tr>
+        <tr><td>25</td><td>Rish</td><td class="week-col recent">0</td><td class="week-col recent">21</td><td><strong>21</strong></td></tr>
+        <tr><td>26</td><td>Darim</td><td class="week-col recent">0</td><td class="week-col recent">20</td><td><strong>20</strong></td></tr>
+        <tr><td>27</td><td>Hongda Y</td><td class="week-col recent">0</td><td class="week-col recent">19</td><td><strong>19</strong></td></tr>
+        <tr><td>27</td><td>Kris L</td><td class="week-col recent">11</td><td class="week-col recent">8</td><td><strong>19</strong></td></tr>
+        <tr><td>27</td><td>Tim L</td><td class="week-col recent">7</td><td class="week-col recent">12</td><td><strong>19</strong></td></tr>
+        <tr><td>30</td><td>Dwayne</td><td class="week-col recent">0</td><td class="week-col recent">18</td><td><strong>18</strong></td></tr>
+        <tr><td>31</td><td>Ope A</td><td class="week-col recent">0</td><td class="week-col recent">16</td><td><strong>16</strong></td></tr>
+        <tr><td>31</td><td>Will M</td><td class="week-col recent">6</td><td class="week-col recent">10</td><td><strong>16</strong></td></tr>
+        <tr><td>31</td><td>Pilar</td><td class="week-col recent">6</td><td class="week-col recent">10</td><td><strong>16</strong></td></tr>
+        <tr><td>34</td><td>Stephen Li</td><td class="week-col recent">0</td><td class="week-col recent">14</td><td><strong>14</strong></td></tr>
+        <tr><td>35</td><td>Evangeline</td><td class="week-col recent">0</td><td class="week-col recent">11</td><td><strong>11</strong></td></tr>
+        <tr><td>36</td><td>Mitch G</td><td class="week-col recent">0</td><td class="week-col recent">9</td><td><strong>9</strong></td></tr>
+        <tr><td>36</td><td>Jaden P</td><td class="week-col recent">0</td><td class="week-col recent">9</td><td><strong>9</strong></td></tr>
+        <tr><td>38</td><td>Janice</td><td class="week-col recent">0</td><td class="week-col recent">7</td><td><strong>7</strong></td></tr>
+        <tr><td>38</td><td>Andrea B</td><td class="week-col recent">4</td><td class="week-col recent">3</td><td><strong>7</strong></td></tr>
+        <tr><td>40</td><td>Brian T</td><td class="week-col recent">0</td><td class="week-col recent">6</td><td><strong>6</strong></td></tr>
+        <tr><td>41</td><td>Martin G</td><td class="week-col recent">0</td><td class="week-col recent">5</td><td><strong>5</strong></td></tr>
+        <tr><td>42</td><td>Mehak</td><td class="week-col recent">1</td><td class="week-col recent">2</td><td><strong>3</strong></td></tr>
+        <tr><td>42</td><td>Jarred L</td><td class="week-col recent">3</td><td class="week-col recent">0</td><td><strong>3</strong></td></tr>
+        <tr><td>44</td><td>Darren B</td><td class="week-col recent">0</td><td class="week-col recent">2</td><td><strong>2</strong></td></tr>
+        <tr><td>45</td><td>Eleazar</td><td class="week-col recent">0</td><td class="week-col recent">1</td><td><strong>1</strong></td></tr>
+        <tr><td>45</td><td>Nancy</td><td class="week-col recent">0</td><td class="week-col recent">1</td><td><strong>1</strong></td></tr>
       </table>
     </div>
+
+    <p style="text-align:center;">
+      <a href="#" class="toggle-btn" onclick="showAllWeeks()">Show all weeks</a>
+    </p>
 
     <p style="text-align:center; margin-top:25px;">
       <a href="https://wa.me/13063412227?text=Snap%20a%20picture%20of%20the%20scores%20and%20send%20it%20here%20to%20update" class="btn">Snap a picture of the scores and send it here to update</a>
     </p>
 
-    <p class="note">Standings after Week 2 only. Week 3 will be added when real results are available.</p>
+    <p class="note">Results are calculated from weekly score photos after manual verification of set scores and placements.</p>
   </div>
+
+  <script>
+    function showAllWeeks() {
+      document.querySelectorAll('.week-col').forEach(col => col.style.display = 'table-cell');
+      document.querySelector('.toggle-btn').style.display = 'none';
+    }
+  </script>
 </body>
 </html>
