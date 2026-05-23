@@ -1,96 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script defer src="/_vercel/insights/script.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css"
-    />
-    <title>Vercel HTML Starter</title>
-    <meta
-      name="description"
-      content="High-performance HTML based website template."
-    />
-  </head>
-  <body>
-    <h1>Vercel HTML Starter</h1>
-    <p>
-      This template is a simple, but powerful single
-      <code>index.html</code> file deployed to
-      <a href="https://vercel.com">Vercel</a>. When your site is deployed, all
-      static assets (like HTML, JavaScript, CSS, images, and more) are deployed
-      globally to every
-      <a href="https://vercel.com/docs/concepts/edge-network/overview"
-        >Vercel Edge Network</a
-      >
-      region.
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riverside Tuesday Night Tennis</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin:0; background:#0a3d1f; color:white; }
+    header { background: linear-gradient(rgba(10,61,31,0.75), rgba(10,61,31,0.85)), url('https://picsum.photos/id/1015/2000/1200'); background-size:cover; padding:80px 20px; text-align:center; }
+    h1 { font-size:2.6em; margin:0; font-weight:700; letter-spacing:1px; }
+    .tagline { font-size:1.35em; margin:12px 0 0; opacity:0.95; }
+    .container { max-width:1100px; margin:30px auto; padding:0 15px; }
+    h2 { color:#f9d71c; margin-top:35px; font-size:1.6em; }
+    table { width:100%; border-collapse:collapse; background:white; color:#111; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.3); margin-bottom:35px; }
+    th { background:#076a21; color:white; padding:14px 12px; text-align:left; }
+    td { padding:11px 12px; border-bottom:1px solid #eee; font-size:0.95em; }
+    .rank { width:54px; font-weight:bold; }
+    .top3 { background:#fff8d6 !important; font-weight:bold; }
+    .scroll { overflow-x:auto; }
+    .btn { background:#f9d71c; color:#0a3d1f; padding:16px 36px; border-radius:50px; text-decoration:none; font-weight:bold; display:inline-block; margin:30px 0; font-size:1.05em; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Riverside Tennis Club</h1>
+    <p class="tagline">Tuesday Night League • 2026 Season</p>
+  </header>
+
+  <div class="container">
+    <h2>Current Standings (After Week 2)</h2>
+    <div class="scroll">
+      <table>
+        <tr><th class="rank">Rank</th><th>Player</th><th>Total</th><th>W1</th><th>W2</th></tr>
+        <tr class="top3"><td class="rank">1</td><td>Chris K</td><td>63</td><td>21</td><td>42</td></tr>
+        <tr class="top3"><td class="rank">2</td><td>Adrian</td><td>61</td><td>22</td><td>39</td></tr>
+        <tr class="top3"><td class="rank">2</td><td>Dan W</td><td>61</td><td>20</td><td>41</td></tr>
+        <tr><td class="rank">4</td><td>SJ</td><td>56</td><td>18</td><td>38</td></tr>
+        <tr><td class="rank">5</td><td>Rob C</td><td>56</td><td>19</td><td>37</td></tr>
+        <tr><td class="rank">6</td><td>Landon</td><td>40</td><td>0</td><td>40</td></tr>
+        <tr><td class="rank">7</td><td>Mike D</td><td>36</td><td>0</td><td>36</td></tr>
+        <tr><td class="rank">8</td><td>Pat V</td><td>35</td><td>0</td><td>35</td></tr>
+        <tr><td class="rank">9</td><td>Corey</td><td>34</td><td>0</td><td>34</td></tr>
+        <tr><td class="rank">10</td><td>Ethan B</td><td>33</td><td>16</td><td>17</td></tr>
+        <tr><td class="rank">11</td><td>Jonathan H.</td><td>32</td><td>0</td><td>32</td></tr>
+        <tr><td class="rank">12</td><td>Chris H</td><td>30</td><td>0</td><td>30</td></tr>
+        <tr><td class="rank">13</td><td>Ian F.</td><td>31</td><td>17</td><td>14</td></tr>
+        <tr><td class="rank">14</td><td>Paul F.</td><td>28</td><td>0</td><td>28</td></tr>
+        <tr><td class="rank">15</td><td>Marc T.</td><td>27</td><td>0</td><td>27</td></tr>
+        <tr><td class="rank">16</td><td>Lloyd R.</td><td>26</td><td>0</td><td>26</td></tr>
+        <tr><td class="rank">17</td><td>Ryan S</td><td>25</td><td>0</td><td>25</td></tr>
+        <tr><td class="rank">18</td><td>Manny</td><td>24</td><td>0</td><td>24</td></tr>
+        <tr><td class="rank">19</td><td>Dewayne E</td><td>23</td><td>13</td><td>10</td></tr>
+        <tr><td class="rank">20</td><td>Leigh S</td><td>22</td><td>12</td><td>10</td></tr>
+        <tr><td class="rank">21</td><td>Rish</td><td>21</td><td>0</td><td>21</td></tr>
+        <tr><td class="rank">22</td><td>Darim</td><td>20</td><td>0</td><td>20</td></tr>
+        <tr><td class="rank">23</td><td>Hongda Y.</td><td>19</td><td>0</td><td>19</td></tr>
+        <tr><td class="rank">24</td><td>Dwayne</td><td>18</td><td>0</td><td>18</td></tr>
+        <tr><td class="rank">25</td><td>Ope A.</td><td>16</td><td>0</td><td>16</td></tr>
+        <tr><td class="rank">26</td><td>Stephen Li.</td><td>14</td><td>0</td><td>14</td></tr>
+        <tr><td class="rank">27</td><td>Aidan H.</td><td>43</td><td>14</td><td>29</td></tr>
+        <tr><td class="rank">28</td><td>Zev</td><td>27</td><td>10</td><td>17</td></tr>
+        <tr><td class="rank">29</td><td>Kris L.</td><td>19</td><td>11</td><td>8</td></tr>
+        <tr><td class="rank">30</td><td>Stephen</td><td>23</td><td>8</td><td>15</td></tr>
+        <tr><td class="rank">31</td><td>Will M.</td><td>16</td><td>6</td><td>10</td></tr>
+        <tr><td class="rank">32</td><td>Pilar</td><td>16</td><td>6</td><td>10</td></tr>
+        <tr><td class="rank">33</td><td>Mitch G.</td><td>9</td><td>0</td><td>9</td></tr>
+        <tr><td class="rank">34</td><td>Evangeline</td><td>11</td><td>0</td><td>11</td></tr>
+        <tr><td class="rank">35</td><td>Tim L</td><td>19</td><td>7</td><td>12</td></tr>
+        <tr><td class="rank">36</td><td>Brian T</td><td>6</td><td>0</td><td>6</td></tr>
+        <tr><td class="rank">37</td><td>Darren B</td><td>2</td><td>0</td><td>2</td></tr>
+        <tr><td class="rank">38</td><td>Martin G.</td><td>5</td><td>0</td><td>5</td></tr>
+        <tr><td class="rank">39</td><td>Janice</td><td>7</td><td>0</td><td>7</td></tr>
+        <tr><td class="rank">40</td><td>Jaden P</td><td>9</td><td>0</td><td>9</td></tr>
+        <tr><td class="rank">41</td><td>Jarred L.</td><td>3</td><td>0</td><td>3</td></tr>
+        <tr><td class="rank">42</td><td>Andrea B.</td><td>7</td><td>4</td><td>3</td></tr>
+        <tr><td class="rank">43</td><td>Mehak</td><td>3</td><td>1</td><td>2</td></tr>
+        <tr><td class="rank">44</td><td>Eleazar</td><td>1</td><td>0</td><td>1</td></tr>
+        <tr><td class="rank">45</td><td>Nancy</td><td>1</td><td>0</td><td>1</td></tr>
+      </table>
+    </div>
+
+    <p style="text-align:center;">
+      <a href="https://wa.me/13063412227?text=Snap%20a%20picture%20of%20the%20scores%20and%20send%20it%20here%20to%20update" class="btn">Snap a picture of the scores and send it here to update</a>
     </p>
-    <h2>Simple, privacy-friendly analytics</h2>
-    <p>
-      Want to understand your visitor traffic? Vercel Analytics gives you
-      first-party, privacy-friendly traffic analytics for your HTML site. This
-      template is already configured using the following script:
-    </p>
-    <pre><code>&lt;script defer src="/_vercel/insights/script.js"&gt;&lt;/script&gt;</code></pre>
-    <p>
-      Learn more about
-      <a href="https://vercel.com/analytics">Vercel Analytics</a>.
-    </p>
-    <h2>Integrated with git</h2>
-    <p>
-      Deploying updates to your site is as simple as
-      <code>git push</code> thanks to Vercel's advanced
-      <a href="https://vercel.com/docs/concepts/git">Git Integration</a>.
-      Support for GitHub, GitLab, Bitbucket is zero-configuration, and with the
-      flexible Vercel CLI and API, you can integrate with any tool possible.
-    </p>
-    <p>
-      Learn more about
-      <a href="https://vercel.com/docs/concepts/git">Git Integration</a>.
-    </p>
-    <h2>Fast <code>gzip</code> compression</h2>
-    <p>
-      To help ensure the smallest possible file sizes for your static assets,
-      the Vercel Edge Network compresses files by default using
-      <code>gzip</code>. You can also optionally use
-      <code>brotli</code> compressesion if you prefer.
-    </p>
-    <p>
-      Learn more about
-      <a href="https://vercel.com/docs/concepts/edge-network/compression"
-        >compression</a
-      >.
-    </p>
-    <h2>Advanced routing configuration</h2>
-    <p>
-      Vercel gives you a variety of ways to configure the routing of your
-      website. For example, adding redirects, rewrites, or headers to your page.
-      While you can use <code>vercel.json</code> to define these through JSON,
-      you can also express your routing configuration as code using
-      <a href="https://vercel.com/docs/concepts/functions/edge-middleware"
-        >Vercel Edge Middleware</a
-      >.
-    </p>
-    <p>
-      Middleware runs before the
-      <a href="https://vercel.com/docs/concepts/edge-network/caching"
-        >Vercel Edge Network Cache</a
-      >, so you can configure routing exactly as your application needs. For
-      example, this template uses <code>middleware.js</code> defined in the root
-      of the repository to add additional security headers to the site:
-    </p>
-    <pre><code>referrer-policy: origin-when-cross-origin
-strict-transport-security: max-age=31536000; includeSubDomains; preload
-x-content-type-options: nosniff
-x-dns-prefetch-control: on
-x-frame-options: DENY</code></pre>
-    <p>
-      Learn more about
-      <a href="https://vercel.com/docs/concepts/functions/edge-middleware"
-        >Vercel Edge Middleware</a
-      >.
-    </p>
-  </body>
+  </div>
+</body>
 </html>
