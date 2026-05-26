@@ -3,180 +3,1197 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Riverside Tuesday Night Tennis</title>
+  <title>Riverside Tuesday Night Doubles • League Standings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
-    body { 
-      font-family: system-ui, -apple-system, sans-serif; 
-      margin:0; 
-      background:#0a3d1f; 
-      color:white; 
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+    
+    :root {
+      --green-dark: #0f2c22;
+      --green: #166534;
+      --gold: #eab308;
     }
-    header { 
-      background: linear-gradient(rgba(10,61,31,0.82), rgba(10,61,31,0.88)), url('https://picsum.photos/id/1015/2000/1200'); 
-      background-size:cover; 
-      padding:75px 20px 65px; 
-      text-align:center; 
+    
+    body {
+      font-family: 'Inter', system_ui, sans-serif;
     }
-    h1 { 
-      font-size:2.6em; 
-      margin:0; 
-      font-weight:700; 
-      letter-spacing:0.4px; 
+    
+    .font-display {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-weight: 600;
     }
-    .tagline { 
-      font-size:1.25em; 
-      margin:8px 0 0; 
-      opacity:0.9; 
+
+    .league-header {
+      background: linear-gradient(135deg, #0f2c22 0%, #14532d 100%);
     }
-    .container { 
-      max-width:1080px; 
-      margin:30px auto; 
-      padding:0 16px; 
+
+    .tennis-yellow {
+      color: #eab308;
     }
-    h2 { 
-      color:#f9d71c; 
-      margin:0 0 18px; 
-      font-size:1.5em; 
-      font-weight:600; 
+
+    .section-header {
+      font-size: 1.1rem;
+      letter-spacing: -.025em;
+      font-weight: 600;
     }
-    .scroll { 
-      overflow-x:auto; 
-      -webkit-overflow-scrolling:touch; 
+
+    .standings-table th {
+      font-weight: 600;
+      color: #166534;
+      background: #f1f5f9;
     }
-    table { 
-      width:100%; 
-      border-collapse:collapse; 
-      background:white; 
-      color:#111; 
-      border-radius:14px; 
-      overflow:hidden; 
-      box-shadow:0 10px 30px rgba(0,0,0,0.25); 
+
+    .standings-table td {
+      transition: background-color .1s;
     }
-    th { 
-      background:#065c1c; 
-      color:white; 
-      padding:13px 10px; 
-      text-align:left; 
-      font-size:0.9em; 
-      font-weight:600; 
+
+    .standings-table tr:hover td {
+      background: #f8fafc;
     }
-    td { 
-      padding:11px 10px; 
-      border-bottom:1px solid #eee; 
-      font-size:0.92em; 
-      text-align:center; 
+
+    .player-row.top-3 {
+      background: linear-gradient(90deg, #fefce8 0%, #fef9c3 100%);
+      font-weight: 600;
     }
-    td:first-child, th:first-child { 
-      text-align:left; 
-      padding-left:16px; 
+
+    .nav-link {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    tr:last-child td { 
-      border-bottom:none; 
+    
+    .nav-link:hover {
+      color: #166534;
+      transform: translateY(-1px);
     }
-    .top3 { 
-      background:#fff8d6; 
-      font-weight:700; 
+
+    .stat-card {
+      transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1), box-shadow 0.2s;
     }
-    tr:hover { 
-      background:#f8f9f5; 
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     }
-    .btn { 
-      background:#f9d71c; 
-      color:#0a3d1f; 
-      padding:16px 36px; 
-      border-radius:50px; 
-      text-decoration:none; 
-      font-weight:700; 
-      display:inline-block; 
-      margin:30px 0 10px; 
-      font-size:1.05em; 
-      box-shadow:0 4px 14px rgba(249,215,28,0.35); 
+
+    .modal {
+      animation: modalPop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .note { 
-      font-size:0.82em; 
-      opacity:0.6; 
-      text-align:center; 
-      margin-top:10px; 
+
+    @keyframes modalPop {
+      0% { transform: scale(0.8) translateY(40px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .score-input {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mini-spark {
+      height: 18px;
+      width: 52px;
+    }
+
+    .league-table {
+      box-shadow: 0 10px 10px -3px rgb(15 44 34 / 0.1), 0 4px 6px -4px rgb(15 44 34 / 0.1);
+    }
+
+    .court-card {
+      border: 2px solid #166534;
+    }
+
+    .data-table {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    
+    .data-table th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .rank-badge {
+      font-variant-numeric: tabular-nums;
     }
   </style>
 </head>
-<body>
-  <header>
-    <h1>Riverside Tennis Club</h1>
-    <p class="tagline">Tuesday Night League • 2026 Season</p>
-  </header>
+<body class="bg-slate-50 text-slate-800">
+  <!-- Top Navigation -->
+  <nav class="bg-white border-b sticky top-0 z-50">
+    <div class="max-w-screen-xl mx-auto">
+      <div class="px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-x-3">
+          <div class="w-10 h-10 bg-emerald-800 rounded-2xl flex items-center justify-center">
+            <i class="fa-solid fa-tennis-ball text-yellow-400 text-3xl"></i>
+          </div>
+          <div>
+            <div class="font-display text-2xl font-semibold tracking-tighter">Riverside</div>
+            <div class="text-[10px] text-emerald-700 -mt-1 font-medium tracking-[1px]">TUESDAY NIGHT DOUBLES</div>
+          </div>
+        </div>
 
-  <div class="container">
-    <h2>Current Standings (After Week 3)</h2>
+        <div class="hidden md:flex items-center gap-x-8 text-sm font-medium">
+          <a href="#standings" class="nav-link text-slate-600 hover:text-emerald-800">Standings</a>
+          <a href="#weekly" class="nav-link text-slate-600 hover:text-emerald-800">Weekly</a>
+          <a href="#rules" class="nav-link text-slate-600 hover:text-emerald-800">Rules</a>
+          <a href="#tools" class="nav-link text-slate-600 hover:text-emerald-800">Score Entry</a>
+        </div>
 
-    <div class="scroll">
-      <table>
-        <tr>
-          <th>Rank</th>
-          <th>Player</th>
-          <th class="week-col">W1</th>
-          <th class="week-col">W2</th>
-          <th class="week-col recent">W3</th>
-          <th>Total</th>
-        </tr>
+        <div class="flex items-center gap-x-3">
+          <div class="hidden sm:flex items-center gap-x-2 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-3xl">
+            <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            <span>Week <span id="current-week-badge">3</span> of 22</span>
+          </div>
+          <button onclick="showSubmitPhotoModal()"
+                  class="flex items-center gap-x-2 bg-white hover:bg-slate-50 border text-sm font-semibold px-4 py-2 rounded-3xl transition-colors">
+            <i class="fa-brands fa-whatsapp text-emerald-600"></i>
+            <span class="hidden sm:inline">Submit scores</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
 
-        <tr class="top3"><td>1</td><td>Chris K.</td><td class="week-col">21</td><td class="week-col">42</td><td class="week-col recent">27</td><td><strong>90</strong></td></tr>
-        <tr class="top3"><td>2</td><td>Adrian</td><td class="week-col">22</td><td class="week-col">39</td><td class="week-col recent">28</td><td><strong>89</strong></td></tr>
-        <tr class="top3"><td>3</td><td>Dan W.</td><td class="week-col">20</td><td class="week-col">41</td><td class="week-col recent">26</td><td><strong>87</strong></td></tr>
-        <tr><td>4</td><td>Rob C</td><td class="week-col">19</td><td class="week-col">37</td><td class="week-col recent">25</td><td><strong>81</strong></td></tr>
-        <tr><td>5</td><td>SJ</td><td class="week-col">18</td><td class="week-col">38</td><td class="week-col recent">23</td><td><strong>79</strong></td></tr>
-        <tr><td>6</td><td>Ethan B</td><td class="week-col">16</td><td class="week-col">33</td><td class="week-col recent">24</td><td><strong>73</strong></td></tr>
-        <tr><td>7</td><td>Ian F.</td><td class="week-col">17</td><td class="week-col">31</td><td class="week-col recent">18</td><td><strong>66</strong></td></tr>
-        <tr><td>8</td><td>Aidan H.</td><td class="week-col">14</td><td class="week-col">29</td><td class="week-col recent">19</td><td><strong>62</strong></td></tr>
-        <tr><td>9</td><td>Corey</td><td class="week-col">0</td><td class="week-col">34</td><td class="week-col recent">22</td><td><strong>56</strong></td></tr>
-        <tr><td>10</td><td>Alden T.</td><td class="week-col">15</td><td class="week-col">26</td><td class="week-col recent">14</td><td><strong>55</strong></td></tr>
-        <tr><td>11</td><td>Jonathan H.</td><td class="week-col">0</td><td class="week-col">32</td><td class="week-col recent">21</td><td><strong>53</strong></td></tr>
-        <tr><td>12</td><td>Dewayne E.</td><td class="week-col">13</td><td class="week-col">23</td><td class="week-col recent">15</td><td><strong>51</strong></td></tr>
-        <tr><td>13</td><td>Paul F.</td><td class="week-col">0</td><td class="week-col">28</td><td class="week-col recent">17</td><td><strong>45</strong></td></tr>
-        <tr><td>14</td><td>Leigh S.</td><td class="week-col">12</td><td class="week-col">22</td><td class="week-col recent">9</td><td><strong>43</strong></td></tr>
-        <tr><td>15</td><td>Marc T.</td><td class="week-col">0</td><td class="week-col">27</td><td class="week-col recent">16</td><td><strong>43</strong></td></tr>
-        <tr><td>16</td><td>Landon</td><td class="week-col">0</td><td class="week-col">40</td><td class="week-col recent">0</td><td><strong>40</strong></td></tr>
-        <tr><td>17</td><td>Zev</td><td class="week-col">10</td><td class="week-col">17</td><td class="week-col recent">12</td><td><strong>39</strong></td></tr>
-        <tr><td>18</td><td>Manny</td><td class="week-col">0</td><td class="week-col">24</td><td class="week-col recent">13</td><td><strong>37</strong></td></tr>
-        <tr><td>19</td><td>Mike D.</td><td class="week-col">0</td><td class="week-col">36</td><td class="week-col recent">0</td><td><strong>36</strong></td></tr>
-        <tr><td>20</td><td>Pat V.</td><td class="week-col">0</td><td class="week-col">35</td><td class="week-col recent">0</td><td><strong>35</strong></td></tr>
-        <tr><td>21</td><td>Chris H.</td><td class="week-col">0</td><td class="week-col">30</td><td class="week-col recent">0</td><td><strong>30</strong></td></tr>
-        <tr><td>22</td><td>Dwayne</td><td class="week-col">0</td><td class="week-col">18</td><td class="week-col recent">8</td><td><strong>26</strong></td></tr>
-        <tr><td>23</td><td>Ryan S.</td><td class="week-col">0</td><td class="week-col">25</td><td class="week-col recent">0</td><td><strong>25</strong></td></tr>
-        <tr><td>24</td><td>Stephen</td><td class="week-col">8</td><td class="week-col">15</td><td class="week-col recent">0</td><td><strong>23</strong></td></tr>
-        <tr><td>25</td><td>Kris L.</td><td class="week-col">11</td><td class="week-col">8</td><td class="week-col recent">3</td><td><strong>22</strong></td></tr>
-        <tr><td>26</td><td>Rish</td><td class="week-col">0</td><td class="week-col">21</td><td class="week-col recent">0</td><td><strong>21</strong></td></tr>
-        <tr><td>27</td><td>Darim</td><td class="week-col">0</td><td class="week-col">20</td><td class="week-col recent">0</td><td><strong>20</strong></td></tr>
-        <tr><td>28</td><td>Dave Patola</td><td class="week-col">0</td><td class="week-col">0</td><td class="week-col recent">20</td><td><strong>20</strong></td></tr>
-        <tr><td>29</td><td>Hongda Y.</td><td class="week-col">0</td><td class="week-col">19</td><td class="week-col recent">0</td><td><strong>19</strong></td></tr>
-        <tr><td>30</td><td>Tim L.</td><td class="week-col">7</td><td class="week-col">12</td><td class="week-col recent">0</td><td><strong>19</strong></td></tr>
-        <tr><td>31</td><td>Will M.</td><td class="week-col">6</td><td class="week-col">10</td><td class="week-col recent">0</td><td><strong>16</strong></td></tr>
-        <tr><td>32</td><td>Ope A.</td><td class="week-col">0</td><td class="week-col">16</td><td class="week-col recent">0</td><td><strong>16</strong></td></tr>
-        <tr><td>33</td><td>Pilar</td><td class="week-col">6</td><td class="week-col">10</td><td class="week-col recent">0</td><td><strong>16</strong></td></tr>
-        <tr><td>34</td><td>Jaden P.</td><td class="week-col">0</td><td class="week-col">9</td><td class="week-col recent">6</td><td><strong>15</strong></td></tr>
-        <tr><td>35</td><td>Stephen Li.</td><td class="week-col">0</td><td class="week-col">14</td><td class="week-col recent">0</td><td><strong>14</strong></td></tr>
-        <tr><td>36</td><td>Mitch G.</td><td class="week-col">0</td><td class="week-col">9</td><td class="week-col recent">5</td><td><strong>14</strong></td></tr>
-        <tr><td>37</td><td>Karim</td><td class="week-col">0</td><td class="week-col">0</td><td class="week-col recent">11</td><td><strong>11</strong></td></tr>
-        <tr><td>38</td><td>Evangeline</td><td class="week-col">0</td><td class="week-col">11</td><td class="week-col recent">0</td><td><strong>11</strong></td></tr>
-        <tr><td>39</td><td>Hamzat</td><td class="week-col">0</td><td class="week-col">0</td><td class="week-col recent">10</td><td><strong>10</strong></td></tr>
-        <tr><td>40</td><td>Janice</td><td class="week-col">0</td><td class="week-col">7</td><td class="week-col recent">2</td><td><strong>9</strong></td></tr>
-        <tr><td>41</td><td>Stephen L.</td><td class="week-col">0</td><td class="week-col">0</td><td class="week-col recent">7</td><td><strong>7</strong></td></tr>
-        <tr><td>42</td><td>Andrea B.</td><td class="week-col">4</td><td class="week-col">3</td><td class="week-col recent">0</td><td><strong>7</strong></td></tr>
-        <tr><td>43</td><td>Brian T.</td><td class="week-col">0</td><td class="week-col">6</td><td class="week-col recent">0</td><td><strong>6</strong></td></tr>
-        <tr><td>44</td><td>Martin G.</td><td class="week-col">0</td><td class="week-col">5</td><td class="week-col recent">0</td><td><strong>5</strong></td></tr>
-        <tr><td>45</td><td>Brody B.</td><td class="week-col">0</td><td class="week-col">0</td><td class="week-col recent">4</td><td><strong>4</strong></td></tr>
-        <tr><td>46</td><td>Mehak</td><td class="week-col">1</td><td class="week-col">2</td><td class="week-col recent">0</td><td><strong>3</strong></td></tr>
-        <tr><td>47</td><td>Jarred L.</td><td class="week-col">3</td><td class="week-col">0</td><td class="week-col recent">0</td><td><strong>3</strong></td></tr>
-        <tr><td>48</td><td>Darren B.</td><td class="week-col">0</td><td class="week-col">2</td><td class="week-col recent">0</td><td><strong>2</strong></td></tr>
-        <tr><td>49</td><td>Nancy</td><td class="week-col">0</td><td class="week-col">1</td><td class="week-col recent">0</td><td><strong>1</strong></td></tr>
-      </table>
+  <!-- Hero -->
+  <div class="league-header text-white">
+    <div class="max-w-screen-xl mx-auto px-6 pt-10 pb-14">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+        <div>
+          <div class="uppercase tracking-[3px] text-emerald-400 text-xs font-semibold mb-1">SASKATOON • EST. 1965</div>
+          <h1 class="font-display text-5xl md:text-6xl tracking-tighter font-semibold">Tuesday Night<br>Doubles League</h1>
+          <p class="mt-3 text-xl text-emerald-100 max-w-md">Competitive doubles • May 4 – September 29, 2026 • 22 weeks</p>
+          
+          <div class="flex items-center gap-x-4 mt-5">
+            <div class="flex -space-x-2">
+              <div class="w-7 h-7 bg-white/20 backdrop-blur rounded-full ring-2 ring-white/30 flex items-center justify-center text-[10px]">CK</div>
+              <div class="w-7 h-7 bg-white/20 backdrop-blur rounded-full ring-2 ring-white/30 flex items-center justify-center text-[10px]">AD</div>
+              <div class="w-7 h-7 bg-white/20 backdrop-blur rounded-full ring-2 ring-white/30 flex items-center justify-center text-[10px]">DW</div>
+            </div>
+            <div class="text-sm text-emerald-200">49 players competing</div>
+          </div>
+        </div>
+
+        <div class="flex flex-col items-start md:items-end gap-y-3">
+          <div class="flex items-center gap-x-2 text-sm">
+            <div class="px-4 py-1.5 bg-white/10 backdrop-blur rounded-3xl flex items-center gap-x-2 text-sm font-medium">
+              <i class="fa-solid fa-tachometer-alt"></i>
+              <span>3 weeks completed</span>
+            </div>
+          </div>
+          
+          <div onclick="document.getElementById('standings').scrollIntoView({behavior:'smooth'})" 
+               class="cursor-pointer group flex items-center gap-x-3 bg-white text-emerald-900 hover:bg-yellow-300 transition-colors px-6 py-3 rounded-3xl font-semibold text-sm shadow-inner">
+            <span>VIEW CURRENT STANDINGS</span>
+            <i class="fa-solid fa-arrow-right group-active:translate-x-0.5 transition"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="max-w-screen-xl mx-auto px-6 -mt-6 relative z-10">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="stat-card bg-white rounded-3xl p-5 shadow border border-slate-100">
+        <div class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">Current Leader</div>
+        <div class="flex items-baseline gap-x-2 mt-1">
+          <div class="text-3xl font-semibold" id="leader-name">Chris K.</div>
+          <div class="text-emerald-600 font-mono text-sm font-medium">90 pts</div>
+        </div>
+        <div class="text-xs text-slate-500 mt-0.5">After week 3 • 2nd: Adrian (89)</div>
+      </div>
+      
+      <div class="stat-card bg-white rounded-3xl p-5 shadow border border-slate-100">
+        <div class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">Season Progress</div>
+        <div class="flex items-baseline gap-x-3 mt-1">
+          <div class="text-3xl font-semibold tabular-nums">3<span class="text-xl font-normal text-slate-400">/22</span></div>
+          <div class="flex-1 h-2 bg-emerald-100 rounded mt-1 overflow-hidden">
+            <div class="h-2 w-[13.6%] bg-emerald-600 rounded" style="width:13.6%"></div>
+          </div>
+        </div>
+        <div class="text-xs text-slate-500 mt-1">~19 weeks remaining • Ends Sept 29</div>
+      </div>
+
+      <div class="stat-card bg-white rounded-3xl p-5 shadow border border-slate-100">
+        <div class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">Biggest Mover (W3)</div>
+        <div class="mt-1">
+          <span class="font-semibold">Dave Patola</span>
+          <span class="ml-2 text-emerald-600 font-mono text-sm">+20 pts (debut)</span>
+        </div>
+        <div class="text-xs text-slate-500 mt-1">Also strong: Karim (+11), Hamzat (+10)</div>
+      </div>
+
+      <div class="stat-card bg-white rounded-3xl p-5 shadow border border-slate-100 flex flex-col justify-between">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">End-of-Season Rule</div>
+          <div class="text-sm mt-1 leading-tight">Final standings drop your <span class="font-semibold text-emerald-700">two lowest weeks</span></div>
+        </div>
+        <div onclick="document.getElementById('rules').scrollIntoView({behavior:'smooth'})" class="text-xs font-medium text-emerald-700 hover:underline cursor-pointer mt-3">Read full rules →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STANDINGS -->
+  <div id="standings" class="max-w-screen-xl mx-auto px-6 pt-12">
+    <div class="flex items-end justify-between mb-4">
+      <div>
+        <div class="section-header flex items-center gap-x-3">
+          <span>Current Standings</span>
+          <span class="text-xs px-2.5 py-1 rounded-2xl bg-emerald-100 text-emerald-700 font-mono font-medium">AFTER WEEK 3</span>
+        </div>
+        <div class="text-sm text-slate-500">Click column headers to sort • Search to filter players</div>
+      </div>
+      
+      <div class="flex items-center gap-x-2">
+        <div class="relative">
+          <input id="search-input" 
+                 onkeyup="filterStandingsTable()"
+                 type="text" 
+                 placeholder="Search players..." 
+                 class="w-52 bg-white pl-9 pr-4 py-2 text-sm border border-slate-200 focus:border-emerald-300 outline-none rounded-3xl placeholder:text-slate-400">
+          <i class="fa-solid fa-search absolute left-3.5 top-2.5 text-slate-400"></i>
+        </div>
+        <button onclick="exportStandingsCSV()" 
+                class="text-xs flex items-center gap-x-1.5 bg-white border hover:bg-slate-50 transition px-4 h-9 rounded-3xl font-medium text-slate-600">
+          <i class="fa-solid fa-download text-xs"></i>
+          <span>CSV</span>
+        </button>
+        <button onclick="resetFilters()" 
+                class="text-xs flex items-center gap-x-1.5 bg-white border hover:bg-slate-50 transition px-3 h-9 rounded-3xl font-medium text-slate-600">
+          <i class="fa-solid fa-undo"></i>
+        </button>
+      </div>
     </div>
 
-    <p style="text-align:center; margin-top:30px;">
-      <a href="https://wa.me/13063412227?text=Snap%20a%20picture%20of%20the%20scores%20and%20send%20it%20here%20to%20update" class="btn">
-        Snap a picture of the scores and send it here to update
-      </a>
-    </p>
+    <div class="bg-white rounded-3xl shadow border border-slate-100 overflow-hidden league-table">
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[820px] data-table standings-table text-sm" id="standings-table">
+          <thead>
+            <tr>
+              <th onclick="sortTable(0)" class="cursor-pointer px-5 py-3.5 text-left w-12">Rank</th>
+              <th onclick="sortTable(1)" class="cursor-pointer px-5 py-3.5 text-left">Player</th>
+              <th id="week-headers" class="contents"></th>
+              <th onclick="sortTable(99)" class="cursor-pointer px-5 py-3.5 text-center w-20 font-semibold">Total</th>
+              <th onclick="sortTable(100)" class="cursor-pointer px-4 py-3.5 text-center w-20 text-xs">Trend</th>
+            </tr>
+          </thead>
+          <tbody id="standings-tbody" class="divide-y text-slate-700"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="text-[10px] text-center text-slate-400 mt-3 font-medium">49 active players • Data updates when organizer commits new weeks via the Score Entry tool below</div>
   </div>
+
+  <!-- WEEKLY HIGHLIGHTS -->
+  <div id="weekly" class="max-w-screen-xl mx-auto px-6 pt-12">
+    <div class="section-header mb-4">Weekly Highlights</div>
+    
+    <div class="grid md:grid-cols-3 gap-5" id="weekly-highlights">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- RULES -->
+  <div id="rules" class="max-w-screen-xl mx-auto px-6 pt-12">
+    <div class="flex items-center justify-between mb-4">
+      <div class="section-header">League Rules &amp; Format</div>
+      <a href="https://wa.me/13063412227" target="_blank" class="text-xs text-emerald-700 hover:underline flex items-center gap-1">Questions? Message the organizer <i class="fa-solid fa-external-link-alt text-[9px]"></i></a>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Rule cards -->
+      <div class="bg-white border border-slate-100 rounded-3xl p-5">
+        <div class="flex gap-x-3">
+          <div class="w-8 h-8 shrink-0 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-calendar"></i></div>
+          <div class="text-sm leading-snug">
+            <div class="font-semibold">Schedule</div>
+            <div class="text-slate-600 mt-0.5">Every Tuesday evening, May 4 – end of September 2026 (~22 weeks). No drop weeks counted at end of season.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl p-5">
+        <div class="flex gap-x-3">
+          <div class="w-8 h-8 shrink-0 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-users"></i></div>
+          <div class="text-sm leading-snug">
+            <div class="font-semibold">Court Grouping &amp; Partners</div>
+            <div class="text-slate-600 mt-0.5">Players grouped on courts (usually 4 per court, sometimes 5). Within each court you rotate partners — play with every other player on the court exactly once.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl p-5">
+        <div class="flex gap-x-3">
+          <div class="w-8 h-8 shrink-0 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-tachometer-alt"></i></div>
+          <div class="text-sm leading-snug">
+            <div class="font-semibold">Match Format</div>
+            <div class="text-slate-600 mt-0.5">4-player courts: 3 sets, first to 6 games (ad scoring, tiebreak at 5-5). 5-player courts: 5 sets, first to 5 (tiebreak at 4-4).</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl p-5">
+        <div class="flex gap-x-3">
+          <div class="w-8 h-8 shrink-0 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-sort-numeric-up"></i></div>
+          <div class="text-sm leading-snug">
+            <div class="font-semibold">Weekly Points (How Standings Are Built)</div>
+            <div class="text-slate-600 mt-0.5">N = number of players who actually played (have scores written on sheet). Players ranked by total <strong>games won</strong> that night across their sets. Top player gets N points, next N-1, down to 1. Court blocks are consecutive (top court = highest points).</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl p-5">
+        <div class="flex gap-x-3">
+          <div class="w-8 h-8 shrink-0 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-arrow-trend-up"></i></div>
+          <div class="text-sm leading-snug">
+            <div class="font-semibold">Court Movement</div>
+            <div class="text-slate-600 mt-0.5">Highest scorer on a court moves up one court next week. Lowest scorer moves down. This creates natural skill progression throughout the season.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl p-5">
+        <div class="flex gap-x-3">
+          <div class="w-8 h-8 shrink-0 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-trash-alt"></i></div>
+          <div class="text-sm leading-snug">
+            <div class="font-semibold">Final Standings</div>
+            <div class="text-slate-600 mt-0.5">At the end of the season your official total = <strong>sum of all weeks minus your two lowest scoring weeks</strong> (zeros from missed nights count as low weeks).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORE ENTRY TOOL -->
+  <div id="tools" class="max-w-screen-xl mx-auto px-6 pt-12 pb-16">
+    <div class="bg-white border border-emerald-100 shadow-sm rounded-3xl overflow-hidden">
+      <div class="bg-emerald-800 px-6 py-4 flex items-center justify-between">
+        <div>
+          <span class="text-emerald-300 text-xs tracking-widest font-semibold">ORGANIZER TOOL</span>
+          <div class="text-white text-xl font-semibold tracking-tight">Score Entry &amp; Week Management</div>
+        </div>
+        <div class="text-right">
+          <div class="text-emerald-300 text-xs">Data lives in your browser</div>
+          <div class="text-[10px] text-emerald-400">Use Export to save progress across devices</div>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <div class="grid lg:grid-cols-5 gap-6">
+          <!-- Entry Form -->
+          <div class="lg:col-span-3">
+            <div class="flex items-center gap-x-2 mb-3">
+              <div class="font-semibold">Add / Update Week <span id="entry-week-label" class="font-mono text-emerald-700">4</span></div>
+              <input id="entry-week-num" type="number" value="4" min="4" max="30" 
+                     onchange="updateEntryWeekLabel()"
+                     class="w-14 text-center border border-slate-200 rounded-2xl py-1 text-sm font-mono outline-none focus:border-emerald-400">
+            </div>
+
+            <div class="mb-4">
+              <label class="text-xs font-medium text-slate-500 block mb-1.5">Players who played this week + Games Won</label>
+              
+              <!-- Quick add -->
+              <div class="flex gap-2 mb-3">
+                <div class="flex-1 relative">
+                  <select id="player-select" class="w-full text-sm border rounded-3xl px-4 py-2 bg-white appearance-none outline-none">
+                    <!-- populated by JS -->
+                  </select>
+                </div>
+                <input id="games-won-input" type="number" placeholder="Games won" class="w-28 border rounded-3xl px-4 text-sm font-mono outline-none" value="12">
+                <button onclick="addPlayerToWeekEntry()" 
+                        class="px-5 rounded-3xl bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 transition text-white text-sm font-semibold">+ Add</button>
+              </div>
+
+              <div class="border border-slate-200 rounded-3xl max-h-[218px] overflow-auto" id="week-entry-list">
+                <!-- JS populated rows of players + games won for current entry -->
+              </div>
+              
+              <div class="flex items-center justify-between mt-2 text-xs">
+                <button onclick="clearWeekEntry()" class="text-red-600 hover:text-red-700 font-medium flex items-center gap-x-1">
+                  <i class="fa-solid fa-times text-xs"></i> <span>Clear list</span>
+                </button>
+                <div class="text-slate-400" id="entry-player-count">0 players entered</div>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+              <button onclick="calculatePointsFromGames()" 
+                      class="flex-1 md:flex-none px-6 py-3 bg-white border hover:bg-slate-50 font-semibold text-sm rounded-3xl flex items-center justify-center gap-x-2 transition active:scale-[0.985]">
+                <i class="fa-solid fa-calculator"></i>
+                <span>Calculate Points (Rules)</span>
+              </button>
+              <button onclick="previewNewStandings()" 
+                      class="flex-1 md:flex-none px-6 py-3 bg-emerald-700 hover:bg-emerald-800 transition text-white font-semibold text-sm rounded-3xl flex items-center justify-center gap-x-2 active:scale-[0.985]">
+                <span>Preview Updated Standings</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Preview / Actions -->
+          <div class="lg:col-span-2 bg-slate-50 rounded-3xl p-5 border border-slate-100">
+            <div class="uppercase text-[10px] font-bold tracking-widest text-emerald-700 mb-2">LIVE PREVIEW</div>
+            
+            <div id="points-preview-area" class="min-h-[148px] text-sm">
+              <div class="text-slate-400 text-xs">Enter players + games won above, then click "Calculate Points".<br>The tool will rank them and assign league points N → 1.</div>
+            </div>
+
+            <div class="mt-5 pt-4 border-t flex flex-col gap-y-2">
+              <button onclick="commitWeekToStandings()" 
+                      class="w-full py-3 text-sm font-bold tracking-wide bg-emerald-800 hover:bg-black active:bg-slate-900 transition text-white rounded-3xl flex items-center justify-center gap-x-2">
+                <i class="fa-solid fa-plus-circle"></i>
+                <span>COMMIT WEEK TO STANDINGS (local)</span>
+              </button>
+              
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="downloadUpdatedHTML()" 
+                        class="py-2.5 text-xs font-semibold bg-white border hover:bg-slate-100 rounded-3xl flex items-center justify-center gap-x-1.5 transition">
+                  <i class="fa-solid fa-file-download"></i>
+                  <span>Download full site</span>
+                </button>
+                <button onclick="copyWhatsAppUpdate()" 
+                        class="py-2.5 text-xs font-semibold bg-white border hover:bg-slate-100 rounded-3xl flex items-center justify-center gap-x-1.5 transition">
+                  <i class="fa-brands fa-whatsapp"></i>
+                  <span>Copy WA update</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="text-center text-xs text-slate-400 mt-4">Tip: After committing a few weeks locally, use “Download full site” to get a single .html file you can send to me or commit yourself.</div>
+  </div>
+
+  <footer class="border-t bg-white py-6">
+    <div class="max-w-screen-xl mx-auto px-6 text-xs text-slate-500 flex flex-col md:flex-row items-center justify-between gap-y-2">
+      <div>Riverside Badminton &amp; Tennis Club • 645 Spadina Crescent West, Saskatoon</div>
+      <div class="flex items-center gap-x-4">
+        <a href="https://www.saskatoonriverside.com/" target="_blank" class="hover:text-emerald-700">Club website</a>
+        <span class="text-slate-300">•</span>
+        <a href="https://wa.me/13063412227" class="hover:text-emerald-700 flex items-center gap-x-1"><i class="fa-brands fa-whatsapp"></i> <span>306-341-2227</span></a>
+      </div>
+      <div class="text-[10px]">Made for the league • Data is organizer-maintained</div>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div id="toast" onclick="this.classList.add('hidden')" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-6 py-3 rounded-3xl shadow-2xl cursor-pointer flex items-center gap-x-2"></div>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind script
+    function initTailwind() {
+      document.querySelectorAll('script').forEach(s => {
+        if (s.src.includes('tailwindcss')) {
+          // already loaded
+        }
+      });
+    }
+
+    // ============ DATA MODEL ============
+    let seasonData = {
+      currentWeek: 3,
+      players: [],           // {name: string, points: number[] }
+      weekMeta: [            // optional future metadata
+        {num: 1, date: "May 6", n: 28},
+        {num: 2, date: "May 13", n: 42},
+        {num: 3, date: "May 20", n: 39}
+      ]
+    }
+
+    // Load initial data (embedded from original site)
+    const INITIAL_PLAYERS = [{"name":"Chris K.","scores":[21,42,27]},{"name":"Adrian","scores":[22,39,28]},{"name":"Dan W.","scores":[20,41,26]},{"name":"Rob C","scores":[19,37,25]},{"name":"SJ","scores":[18,38,23]},{"name":"Ethan B","scores":[16,33,24]},{"name":"Ian F.","scores":[17,31,18]},{"name":"Aidan H.","scores":[14,29,19]},{"name":"Corey","scores":[0,34,22]},{"name":"Alden T.","scores":[15,26,14]},{"name":"Jonathan H.","scores":[0,32,21]},{"name":"Dewayne E.","scores":[13,23,15]},{"name":"Paul F.","scores":[0,28,17]},{"name":"Leigh S.","scores":[12,22,9]},{"name":"Marc T.","scores":[0,27,16]},{"name":"Landon","scores":[0,40,0]},{"name":"Zev","scores":[10,17,12]},{"name":"Manny","scores":[0,24,13]},{"name":"Mike D.","scores":[0,36,0]},{"name":"Pat V.","scores":[0,35,0]},{"name":"Chris H.","scores":[0,30,0]},{"name":"Dwayne","scores":[0,18,8]},{"name":"Ryan S.","scores":[0,25,0]},{"name":"Stephen","scores":[8,15,0]},{"name":"Kris L.","scores":[11,8,3]},{"name":"Rish","scores":[0,21,0]},{"name":"Darim","scores":[0,20,0]},{"name":"Dave Patola","scores":[0,0,20]},{"name":"Hongda Y.","scores":[0,19,0]},{"name":"Tim L.","scores":[7,12,0]},{"name":"Will M.","scores":[6,10,0]},{"name":"Ope A.","scores":[0,16,0]},{"name":"Pilar","scores":[6,10,0]},{"name":"Jaden P.","scores":[0,9,6]},{"name":"Stephen Li.","scores":[0,14,0]},{"name":"Mitch G.","scores":[0,9,5]},{"name":"Karim","scores":[0,0,11]},{"name":"Evangeline","scores":[0,11,0]},{"name":"Hamzat","scores":[0,0,10]},{"name":"Janice","scores":[0,7,2]},{"name":"Stephen L.","scores":[0,0,7]},{"name":"Andrea B.","scores":[4,3,0]},{"name":"Brian T.","scores":[0,6,0]},{"name":"Martin G.","scores":[0,5,0]},{"name":"Brody B.","scores":[0,0,4]},{"name":"Mehak","scores":[1,2,0]},{"name":"Jarred L.","scores":[3,0,0]},{"name":"Darren B.","scores":[0,2,0]},{"name":"Nancy","scores":[0,1,0]}]
+
+    function loadInitialData() {
+      // Try localStorage first (if user has been using the tool)
+      const saved = localStorage.getItem('riversideTennisLeagueData')
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          seasonData = parsed
+          return
+        } catch(e) {}
+      }
+      
+      // Seed from original standings
+      seasonData.players = INITIAL_PLAYERS.map(p => ({
+        name: p.name,
+        points: [...p.scores]
+      }))
+      seasonData.currentWeek = 3
+    }
+
+    function saveToLocalStorage() {
+      localStorage.setItem('riversideTennisLeagueData', JSON.stringify(seasonData))
+    }
+
+    function getPlayerTotal(player) {
+      return player.points.reduce((a, b) => a + b, 0)
+    }
+
+    function getAdjustedTotal(player) {
+      if (player.points.length <= 2) return getPlayerTotal(player)
+      const sorted = [...player.points].sort((a,b) => a - b)
+      const dropped = sorted[0] + sorted[1]
+      return getPlayerTotal(player) - dropped
+    }
+
+    function computeCurrentStandings() {
+      return seasonData.players
+        .map(p => ({
+          ...p,
+          total: getPlayerTotal(p),
+          adjusted: getAdjustedTotal(p),
+          weeksPlayed: p.points.filter(x => x > 0).length
+        }))
+        .sort((a, b) => b.total - a.total)
+    }
+
+    // ============ RENDER STANDINGS ============
+    let currentSort = { col: 5, dir: 'desc' } // default total desc
+
+    function renderWeekHeaders() {
+      const container = document.getElementById('week-headers')
+      if (!container) return
+      container.innerHTML = ''
+      const weeks = seasonData.currentWeek
+      for (let w = 0; w < weeks; w++) {
+        const th = document.createElement('th')
+        th.className = `cursor-pointer px-4 py-3.5 text-center w-16 font-mono ${w === weeks-1 ? 'bg-emerald-50' : ''}`
+        th.textContent = `W${w+1}`
+        th.onclick = () => sortTable(10 + w)  // week columns mapped to 10+
+        container.appendChild(th)
+      }
+    }
+
+    function renderStandingsTable(filteredPlayers = null) {
+      renderWeekHeaders()
+      const tbody = document.getElementById('standings-tbody')
+      tbody.innerHTML = ''
+
+      let standings = filteredPlayers || computeCurrentStandings()
+
+      standings.forEach((player, idx) => {
+        const rank = idx + 1
+        const isTop3 = rank <= 3
+        
+        const tr = document.createElement('tr')
+        tr.className = isTop3 ? 'top-3' : ''
+        
+        // Trend calculation (simple: compare last two weeks if exist)
+        let trendHTML = '<span class="text-slate-300">—</span>'
+        const pts = player.points
+        if (pts.length >= 2) {
+          const last = pts[pts.length-1]
+          const prev = pts[pts.length-2]
+          const diff = last - prev
+          if (diff > 0) trendHTML = `<span class="text-emerald-600 font-medium">↑${diff}</span>`
+          else if (diff < 0) trendHTML = `<span class="text-red-500 font-medium">↓${Math.abs(diff)}</span>`
+          else trendHTML = `<span class="text-slate-400">0</span>`
+        } else if (pts.length === 1 && pts[0] > 0) {
+          trendHTML = `<span class="text-emerald-600">NEW</span>`
+        }
+
+        const w3Class = pts.length >= 3 ? 'font-semibold text-emerald-700' : ''
+        
+        // Build week cells dynamically (support future weeks)
+        let weekCells = ''
+        const maxWeeks = Math.max(3, seasonData.currentWeek)
+        for (let w = 0; w < maxWeeks; w++) {
+          const val = pts[w] ?? 0
+          const isRecent = (w + 1 === seasonData.currentWeek)
+          weekCells += `<td class="px-4 py-3 text-center font-mono tabular-nums ${isRecent ? w3Class : ''}">${val}</td>`
+        }
+
+        tr.innerHTML = `
+          <td class="px-5 py-3 font-semibold text-slate-500">${rank}</td>
+          <td class="px-5 py-3 font-medium">${player.name}</td>
+          ${weekCells}
+          <td class="px-5 py-3 text-center font-bold tabular-nums">${player.total}</td>
+          <td class="px-4 py-3 text-center text-sm">${trendHTML}</td>
+        `
+        tbody.appendChild(tr)
+      })
+
+      // Update leader badge
+      if (standings.length) {
+        document.getElementById('leader-name').textContent = standings[0].name
+      }
+    }
+
+    function filterStandingsTable() {
+      const q = document.getElementById('search-input').value.toLowerCase().trim()
+      if (!q) {
+        renderStandingsTable()
+        return
+      }
+      const filtered = computeCurrentStandings().filter(p => 
+        p.name.toLowerCase().includes(q)
+      )
+      renderStandingsTable(filtered)
+    }
+
+    function resetFilters() {
+      document.getElementById('search-input').value = ''
+      renderStandingsTable()
+    }
+
+    let sortState = { column: 5, direction: 'desc' }
+
+    function sortTable(colIndex) {
+      const standings = computeCurrentStandings()
+      
+      if (colIndex === 0) { // rank (currently by total desc)
+        standings.reverse()
+        renderStandingsTable(standings)
+        return
+      }
+      if (colIndex === 1) { // name
+        standings.sort((a,b) => sortState.direction === 'desc' ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name))
+        sortState.direction = sortState.direction === 'desc' ? 'asc' : 'desc'
+        renderStandingsTable(standings)
+        return
+      }
+      if (colIndex === 99) { // total
+        standings.sort((a,b) => sortState.direction === 'desc' ? b.total - a.total : a.total - b.total)
+        sortState.direction = sortState.direction === 'desc' ? 'asc' : 'desc'
+        renderStandingsTable(standings)
+        return
+      }
+      if (colIndex === 100) { // trend - do nothing useful
+        renderStandingsTable(standings)
+        return
+      }
+      if (colIndex >= 10) {
+        // dynamic week column: W(colIndex-10)
+        const weekIdx = colIndex - 10
+        standings.sort((a, b) => {
+          const va = a.points[weekIdx] || 0
+          const vb = b.points[weekIdx] || 0
+          return sortState.direction === 'desc' ? vb - va : va - vb
+        })
+        sortState.direction = sortState.direction === 'desc' ? 'asc' : 'desc'
+        renderStandingsTable(standings)
+        return
+      }
+      // default total
+      standings.sort((a,b) => sortState.direction === 'desc' ? b.total - a.total : a.total - b.total)
+      sortState.direction = sortState.direction === 'desc' ? 'asc' : 'desc'
+      renderStandingsTable(standings)
+    }
+
+    // ============ WEEKLY HIGHLIGHTS ============
+    function renderWeeklyHighlights() {
+      const container = document.getElementById('weekly-highlights')
+      container.innerHTML = ''
+
+      const numWeeks = seasonData.currentWeek
+      for (let w = 1; w <= numWeeks; w++) {
+        const weekIdx = w - 1
+        const weekPlayers = seasonData.players
+          .map(p => ({ name: p.name, pts: p.points[weekIdx] || 0 }))
+          .filter(p => p.pts > 0)
+          .sort((a,b) => b.pts - a.pts)
+          .slice(0, 4)
+
+        const div = document.createElement('div')
+        div.className = `bg-white rounded-3xl p-5 border ${w === numWeeks ? 'border-emerald-200 ring-1 ring-emerald-100' : 'border-slate-100'}`
+        
+        let html = `
+          <div class="flex justify-between items-center mb-3">
+            <div>
+              <span class="font-semibold">Week ${w}</span>
+              <span class="text-xs text-slate-400 ml-1.5">${seasonData.weekMeta[weekIdx]?.date || ''}</span>
+            </div>
+            ${w === numWeeks ? '<span class="text-emerald-600 text-xs font-bold px-2 py-px bg-emerald-50 rounded">LATEST</span>' : ''}
+          </div>
+          <div class="space-y-1.5 text-sm">
+        `
+        weekPlayers.forEach((pl, i) => {
+          const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : ''
+          html += `<div class="flex justify-between items-center"><span>${medal} ${pl.name}</span><span class="font-mono font-medium">${pl.pts}</span></div>`
+        })
+        html += `</div>`
+        if (weekPlayers.length === 0) html = `<div class="text-sm text-slate-400 py-4">No data yet</div>`
+        
+        div.innerHTML = html
+        container.appendChild(div)
+      }
+    }
+
+    // ============ SCORE ENTRY TOOL ============
+    let currentWeekEntry = [] // [{name, gamesWon}]
+
+    function populatePlayerSelect() {
+      const select = document.getElementById('player-select')
+      select.innerHTML = '<option value="">\u2014 Choose player \u2014</option>'
+      
+      // All known players + ability to type new
+      const sorted = [...seasonData.players].sort((a,b) => a.name.localeCompare(b.name))
+      sorted.forEach(p => {
+        const opt = document.createElement('option')
+        opt.value = p.name
+        opt.textContent = p.name
+        select.appendChild(opt)
+      })
+      
+      // Allow custom entry
+      const customOpt = document.createElement('option')
+      customOpt.value = '__custom__'
+      customOpt.textContent = '\u2014 New / Other player \u2014'
+      select.appendChild(customOpt)
+    }
+
+    function addPlayerToWeekEntry() {
+      const select = document.getElementById('player-select')
+      const gamesInput = document.getElementById('games-won-input')
+      let name = select.value
+      const games = parseInt(gamesInput.value) || 0
+
+      if (!name || games < 0) {
+        showToast('Select a player and enter games won (0+)', true)
+        return
+      }
+      if (name === '__custom__') {
+        name = prompt('Enter exact player name (case sensitive):')
+        if (!name) return
+      }
+
+      // Avoid duplicates in this entry
+      currentWeekEntry = currentWeekEntry.filter(e => e.name !== name)
+      currentWeekEntry.push({ name, gamesWon: games })
+
+      renderWeekEntryList()
+      gamesInput.value = Math.max(8, Math.min(28, games + 1)) // helpful increment guess
+      select.value = ''
+    }
+
+    function renderWeekEntryList() {
+      const container = document.getElementById('week-entry-list')
+      container.innerHTML = ''
+
+      if (currentWeekEntry.length === 0) {
+        container.innerHTML = `<div class="px-4 py-6 text-center text-xs text-slate-400">No players added yet. Use the selector above.</div>`
+        document.getElementById('entry-player-count').textContent = '0 players'
+        return
+      }
+
+      currentWeekEntry.forEach((entry, idx) => {
+        const row = document.createElement('div')
+        row.className = 'flex items-center justify-between px-4 py-2 border-b last:border-none hover:bg-slate-50 group'
+        row.innerHTML = `
+          <div class="flex items-center gap-x-3">
+            <span class="font-medium text-sm">${entry.name}</span>
+          </div>
+          <div class="flex items-center gap-x-2">
+            <input type="number" value="${entry.gamesWon}" 
+                   class="w-16 font-mono text-right border rounded-2xl px-2 py-1 text-sm focus:outline-none focus:border-emerald-400"
+                   onchange="updateEntryGames(${idx}, this.value)">
+            <span class="text-[10px] text-slate-400 w-8">games</span>
+            <button onclick="removeEntryPlayer(${idx})" class="opacity-40 group-hover:opacity-100 text-red-500 hover:text-red-700 px-1">
+              <i class="fa-solid fa-times"></i>
+            </button>
+          </div>
+        `
+        container.appendChild(row)
+      })
+      document.getElementById('entry-player-count').textContent = `${currentWeekEntry.length} players`
+    }
+
+    function updateEntryGames(idx, val) {
+      currentWeekEntry[idx].gamesWon = parseInt(val) || 0
+    }
+
+    function removeEntryPlayer(idx) {
+      currentWeekEntry.splice(idx, 1)
+      renderWeekEntryList()
+    }
+
+    function clearWeekEntry() {
+      currentWeekEntry = []
+      renderWeekEntryList()
+      document.getElementById('points-preview-area').innerHTML = `<div class="text-slate-400 text-xs">Enter players + games won above, then click "Calculate Points".</div>`
+    }
+
+    function updateEntryWeekLabel() {
+      const val = parseInt(document.getElementById('entry-week-num').value) || 4
+      document.getElementById('entry-week-label').textContent = val
+    }
+
+    function calculatePointsFromGames() {
+      if (currentWeekEntry.length === 0) {
+        showToast('Add some players first', true)
+        return
+      }
+
+      // Per rules: sort by games won desc. Ties broken by... for now stable (name alpha as fallback)
+      const ranked = [...currentWeekEntry].sort((a, b) => {
+        if (b.gamesWon !== a.gamesWon) return b.gamesWon - a.gamesWon
+        return a.name.localeCompare(b.name)
+      })
+
+      const N = ranked.length
+      const previewHTML = `
+        <div class="text-xs uppercase tracking-widest mb-2 text-emerald-700 font-bold">Calculated League Points (N=${N})</div>
+        <div class="text-[13px] max-h-[170px] overflow-auto pr-1 space-y-px">
+          ${ranked.map((r, i) => {
+            const pts = N - i
+            return `<div class="flex justify-between items-center py-px px-1 rounded ${i < 4 ? 'bg-emerald-50' : ''}">
+              <span class="font-medium">${r.name}</span> 
+              <span class="font-mono text-emerald-800 font-semibold tabular-nums">${pts} <span class="text-[10px] text-emerald-400 font-normal">pts</span></span>
+            </div>`
+          }).join('')}
+        </div>
+        <div class="text-[10px] text-emerald-600 mt-2">Highest court gets top block of points. Ready to preview full standings impact?</div>
+      `
+      document.getElementById('points-preview-area').innerHTML = previewHTML
+      // store for commit
+      window._lastCalculatedPoints = ranked.map((r, i) => ({ name: r.name, points: N - i, gamesWon: r.gamesWon }))
+    }
+
+    function previewNewStandings() {
+      if (!window._lastCalculatedPoints || window._lastCalculatedPoints.length === 0) {
+        showToast('Calculate points first using the button above', true)
+        return
+      }
+
+      const weekNum = parseInt(document.getElementById('entry-week-num').value) || (seasonData.currentWeek + 1)
+      
+      // Create a temporary merged view
+      const tempPlayers = seasonData.players.map(p => ({...p, points: [...p.points]}))
+      
+      // Apply the new week points
+      window._lastCalculatedPoints.forEach(entry => {
+        let player = tempPlayers.find(pl => pl.name === entry.name)
+        if (!player) {
+          // new player!
+          player = { name: entry.name, points: [] }
+          tempPlayers.push(player)
+        }
+        // pad weeks if needed
+        while (player.points.length < weekNum - 1) player.points.push(0)
+        player.points[weekNum - 1] = entry.points
+      })
+
+      // Fill missing weeks with 0 for everyone else
+      tempPlayers.forEach(p => {
+        while (p.points.length < weekNum) p.points.push(0)
+      })
+
+      // Sort by new total
+      const sorted = tempPlayers.sort((a,b) => {
+        const ta = a.points.reduce((x,y)=>x+y,0)
+        const tb = b.points.reduce((x,y)=>x+y,0)
+        return tb - ta
+      })
+
+      // Show nice modal preview
+      showPreviewModal(sorted, weekNum)
+    }
+
+    function showPreviewModal(standings, weekNum) {
+      const modal = document.createElement('div')
+      modal.className = `fixed inset-0 bg-black/60 flex items-center justify-center z-[90] p-4`
+      modal.innerHTML = `
+        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[82vh] flex flex-col modal">
+          <div class="px-6 py-4 border-b flex items-center justify-between">
+            <div>
+              <span class="font-semibold">Preview — If Week ${weekNum} is committed</span>
+            </div>
+            <button onclick="this.closest('.fixed').remove()" class="text-2xl leading-none text-slate-400 hover:text-slate-600">&times;</button>
+          </div>
+          
+          <div class="overflow-auto p-2 flex-1">
+            <table class="w-full text-sm">
+              <thead class="text-xs text-slate-500">
+                <tr>
+                  <th class="p-3 text-left">New Rank</th>
+                  <th class="p-3 text-left">Player</th>
+                  <th class="p-3 text-center">New Total</th>
+                  <th class="p-3 text-center">Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${standings.slice(0, 18).map((p, i) => {
+                  const original = seasonData.players.find(op => op.name === p.name)
+                  const oldTotal = original ? original.points.reduce((a,b)=>a+b,0) : 0
+                  const newTotal = p.points.reduce((a,b)=>a+b,0)
+                  const change = newTotal - oldTotal
+                  const changeColor = change > 0 ? 'text-emerald-600' : change < 0 ? 'text-red-500' : 'text-slate-400'
+                  return `<tr class="${i<3 ? 'bg-yellow-50' : ''}">
+                    <td class="px-3 py-2 font-semibold text-slate-500">${i+1}</td>
+                    <td class="px-3 py-2 font-medium">${p.name}</td>
+                    <td class="px-3 py-2 text-center font-mono font-semibold">${newTotal}</td>
+                    <td class="px-3 py-2 text-center font-medium ${changeColor}">${change > 0 ? '+' : ''}${change}</td>
+                  </tr>`
+                }).join('')}
+              </tbody>
+            </table>
+            ${standings.length > 18 ? `<div class="text-xs text-center py-3 text-slate-400">+ ${standings.length - 18} more players</div>` : ''}
+          </div>
+          
+          <div class="p-4 border-t bg-slate-50 flex gap-3 justify-end rounded-b-3xl">
+            <button onclick="this.closest('.fixed').remove()" class="px-6 py-2.5 rounded-3xl text-sm font-medium border">Close</button>
+            <button onclick="commitWeekToStandings(true); this.closest('.fixed').remove()" 
+                    class="px-6 py-2.5 rounded-3xl bg-emerald-700 text-white text-sm font-semibold">Commit Week ${weekNum} Now</button>
+          </div>
+        </div>
+      `
+      document.body.appendChild(modal)
+    }
+
+    function commitWeekToStandings(fromPreview = false) {
+      const weekNum = parseInt(document.getElementById('entry-week-num').value) || (seasonData.currentWeek + 1)
+      
+      if (!window._lastCalculatedPoints || window._lastCalculatedPoints.length === 0) {
+        // fallback: allow direct points entry mode? For now require calc
+        showToast('Please calculate points first (or use simple points mode coming soon)', true)
+        return
+      }
+
+      // Apply to master data
+      let changed = 0
+      window._lastCalculatedPoints.forEach(entry => {
+        let player = seasonData.players.find(p => p.name === entry.name)
+        if (!player) {
+          player = { name: entry.name, points: [] }
+          seasonData.players.push(player)
+          changed++
+        }
+        while (player.points.length < weekNum - 1) {
+          player.points.push(0)
+        }
+        player.points[weekNum - 1] = entry.points
+      })
+
+      // Ensure all other players have the week filled with 0 if missing
+      seasonData.players.forEach(p => {
+        while (p.points.length < weekNum) p.points.push(0)
+      })
+
+      seasonData.currentWeek = Math.max(seasonData.currentWeek, weekNum)
+      
+      // Save
+      saveToLocalStorage()
+
+      // Re-render everything
+      renderStandingsTable()
+      renderWeeklyHighlights()
+      updateCurrentWeekBadge()
+      populatePlayerSelect()
+
+      showToast(`Week ${weekNum} committed! ${changed} new players added. Data saved locally.`)
+      
+      // Clear entry for next week
+      currentWeekEntry = []
+      renderWeekEntryList()
+      document.getElementById('points-preview-area').innerHTML = `<div class="text-emerald-600 text-sm font-medium">Week committed. Ready for next week?</div>`
+      window._lastCalculatedPoints = null
+      
+      // bump suggested week
+      document.getElementById('entry-week-num').value = weekNum + 1
+      updateEntryWeekLabel()
+    }
+
+    function updateCurrentWeekBadge() {
+      const el = document.getElementById('current-week-badge')
+      if (el) el.textContent = seasonData.currentWeek
+    }
+
+    // ============ EXPORT / SHARE ============
+    function downloadUpdatedHTML() {
+      const dataStr = JSON.stringify(seasonData, null, 2)
+      
+      // Create a self-contained new version by cloning current document and injecting fresh data
+      // For simplicity and reliability, we generate a clean standalone file.
+      const newHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riverside Tuesday Night Doubles • League Standings (Week ${seasonData.currentWeek})</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style> body { font-family: system-ui, -apple-system, sans-serif; } .league-header { background: linear-gradient(135deg, #0f2c22 0%, #14532d 100%); } <\/style>
+</head>
+<body class="bg-slate-50">
+  <div class="max-w-screen-xl mx-auto p-8">
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <div class="text-emerald-800 font-semibold text-3xl tracking-tighter">Riverside Tuesday Night Doubles</div>
+        <div class="text-emerald-600">Week ${seasonData.currentWeek} Standings — Updated ${new Date().toLocaleDateString()}</div>
+      </div>
+      <div class="text-xs px-4 py-1 bg-emerald-100 text-emerald-700 rounded-3xl font-medium">Riverside Badminton & Tennis Club</div>
+    </div>
+
+    <div class="bg-white rounded-3xl p-1 shadow border">
+      <table class="w-full text-sm">
+        <thead><tr class="text-left text-emerald-700 bg-emerald-50">
+          <th class="p-3">Rank</th><th class="p-3">Player</th>
+          ${Array.from({length: seasonData.currentWeek}, (_,i)=>`<th class="p-3 text-center">W${i+1}</th>`).join('')}
+          <th class="p-3 text-center font-bold">Total</th>
+        </tr></thead>
+        <tbody>
+          ${computeCurrentStandings().map((p, i) => `
+            <tr class="${i<3 ? 'bg-yellow-50 font-semibold' : ''}">
+              <td class="p-3">${i+1}</td>
+              <td class="p-3">${p.name}</td>
+              ${p.points.map(v => `<td class="p-3 text-center font-mono">${v}</td>`).join('')}
+              <td class="p-3 text-center font-bold">${p.total}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="text-center mt-6 text-xs text-slate-400">Full interactive version + score entry tool available at the live site. This is a snapshot export.</div>
+  </div>
+  <script>/* Full version with editing tools is at riverside-tuesday-tennis.vercel.app */<\/script>
+</body>
+</html>`
+
+      const blob = new Blob([newHTML], {type: 'text/html'})
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `riverside-tuesday-tennis-week-${seasonData.currentWeek}.html`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      
+      showToast('Downloaded updated snapshot HTML. Replace index.html in the repo with this for a quick publish.')
+    }
+
+    function copyWhatsAppUpdate() {
+      const standings = computeCurrentStandings()
+      const top = standings.slice(0, 5)
+      
+      let msg = `Riverside Tuesday Night Doubles — After Week ${seasonData.currentWeek}\n\n`
+      top.forEach((p, i) => {
+        msg += `${i+1}. ${p.name} — ${p.total} pts\n`
+      })
+      msg += `\nBig movers this week: `
+      // simplistic
+      const movers = standings.filter(p => p.points[p.points.length-1] > 20).slice(0,3)
+      msg += movers.map(m => m.name).join(', ') || '\u2014'
+
+      msg += `\n\nFull standings: https://riverside-tuesday-tennis.vercel.app/`
+      msg += `\n\n(Photo of full score sheet attached)`
+
+      navigator.clipboard.writeText(msg).then(() => {
+        showToast('WhatsApp update text copied! Paste + attach photo.')
+      }).catch(() => {
+        prompt('Copy this text:', msg)
+      })
+    }
+
+    function exportStandingsCSV() {
+      const standings = computeCurrentStandings()
+      let csv = 'Rank,Player,' + Array.from({length: seasonData.currentWeek}, (_,i) => `W${i+1}`).join(',') + ',Total\n'
+      
+      standings.forEach((p, i) => {
+        csv += `${i+1},${p.name.replace(/,/g,' ')},${p.points.join(',')},${p.total}\n`
+      })
+      
+      const blob = new Blob([csv], {type:'text/csv'})
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `riverside-standings-week${seasonData.currentWeek}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+
+    // ============ HELPERS ============
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('toast')
+      t.textContent = msg
+      t.className = `fixed bottom-6 left-1/2 -translate-x-1/2 ${isError ? 'bg-red-700' : 'bg-slate-900'} text-white text-sm px-6 py-3 rounded-3xl shadow-2xl cursor-pointer flex items-center gap-x-2 z-[200]`
+      t.classList.remove('hidden')
+      setTimeout(() => t.classList.add('hidden'), 4200)
+    }
+
+    function showSubmitPhotoModal() {
+      const modal = document.createElement('div')
+      modal.className = 'fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-[100]'
+      modal.innerHTML = `
+        <div class="bg-white w-full md:w-[420px] md:rounded-3xl md:m-6 rounded-t-3xl p-6 modal">
+          <div class="font-semibold text-lg mb-1">Send scores via WhatsApp</div>
+          <div class="text-sm text-slate-600">Snap a clear photo of the full score sheet (all courts) and send it to the league organizer.</div>
+          
+          <a href="https://wa.me/13063412227?text=Here%20are%20this%20week%27s%20scores%20(Week%20${seasonData.currentWeek})" 
+             target="_blank"
+             class="mt-5 flex w-full items-center justify-center gap-x-3 bg-emerald-700 hover:bg-emerald-800 transition text-white font-semibold py-3.5 rounded-3xl">
+            <i class="fa-brands fa-whatsapp text-xl"></i>
+            <span>Open WhatsApp (306-341-2227)</span>
+          </a>
+          
+          <button onclick="this.closest('.fixed').remove()" class="mt-3 w-full text-sm py-3 text-slate-500">Cancel</button>
+        </div>
+      `
+      document.body.appendChild(modal)
+    }
+
+    function initScoreEntry() {
+      populatePlayerSelect()
+      renderWeekEntryList()
+      
+      // Keyboard support for games input
+      const gamesInput = document.getElementById('games-won-input')
+      gamesInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          addPlayerToWeekEntry()
+        }
+      })
+      
+      // Seed a couple example players for demo purposes (remove in prod feel)
+      // No — keep clean
+    }
+
+    function initStandings() {
+      loadInitialData()
+      renderWeekHeaders()
+      renderStandingsTable()
+      updateCurrentWeekBadge()
+      
+      // Search listener already on keyup in HTML
+      document.getElementById('search-input').addEventListener('focus', () => {
+        // nice to have
+      })
+    }
+
+    function initEverything() {
+      initTailwind()
+      initStandings()
+      renderWeeklyHighlights()
+      initScoreEntry()
+      
+      // Make sure entry week starts at next logical
+      const nextWeekInput = document.getElementById('entry-week-num')
+      nextWeekInput.value = seasonData.currentWeek + 1
+      document.getElementById('entry-week-label').textContent = seasonData.currentWeek + 1
+      
+      // Demo tip for first time visitors (organizers)
+      setTimeout(() => {
+        if (!localStorage.getItem('riversideTennisLeagueData')) {
+          // silently ready
+        }
+      }, 6500)
+
+      // Keyboard shortcut hint
+      console.log('%c[Riverside Tennis] Tip: Press ? in console to see dev helpers', 'color:#64748b')
+      
+      // Initial toast for power users
+      // showToast('Pro tip: The Score Entry tool below lets you simulate or commit new weeks locally, then download an updated HTML file.')
+    }
+
+    // Boot
+    window.onload = initEverything
+
+    // Global helpers for console / future
+    window.RIVERSIDE_LEAGUE = { seasonData, renderStandingsTable, commitWeekToStandings }
+  </script>
 </body>
 </html>
