@@ -1,1 +1,1272 @@
-[THE FULL CLEANED + HARDENED + PAIRING-READY index.html from the local working copy]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riverside Tuesday Night Doubles • League Standings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Tesseract.js for client-side OCR of score sheet photos (organizer tool) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap');
+    
+    :root {
+      --green-dark: #0f2c22;
+      --green: #166534;
+      --gold: #eab308;
+    }
+    
+    body {
+      font-family: 'Inter', system_ui, sans-serif;
+    }
+    
+    .font-display {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-weight: 600;
+    }
+
+    .league-header {
+      background: linear-gradient(135deg, #0f2c22 0%, #14532d 100%);
+    }
+
+    .tennis-yellow {
+      color: #eab308;
+    }
+
+    .section-header {
+      font-size: 1.1rem;
+      letter-spacing: -.025em;
+      font-weight: 600;
+    }
+
+    .standings-table th {
+      font-weight: 600;
+      color: #166534;
+      background: #f1f5f9;
+    }
+
+    .standings-table td {
+      transition: background-color .1s;
+    }
+
+    .standings-table tr:hover td {
+      background: #f8fafc;
+    }
+
+    .player-row.top-3 {
+      background: linear-gradient(90deg, #fefce8 0%, #fef9c3 100%);
+      font-weight: 600;
+    }
+
+    .nav-link {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .nav-link:hover {
+      color: #166534;
+      transform: translateY(-1px);
+    }
+
+    .stat-card {
+      transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1), box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+
+    .modal {
+      animation: modalPop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes modalPop {
+      0% { transform: scale(0.8) translateY(40px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .score-input {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mini-spark {
+      height: 18px;
+      width: 52px;
+    }
+
+    .league-table {
+      box-shadow: 0 10px 10px -3px rgb(15 44 34 / 0.1), 0 4px 6px -4px rgb(15 44 34 / 0.1);
+    }
+
+    .court-card {
+      border: 2px solid #166534;
+    }
+
+    .data-table {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    
+    .data-table th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .rank-badge {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <!-- Top Navigation -->
+  <nav class="bg-white border-b sticky top-0 z-50">
+    <div class="max-w-screen-xl mx-auto">
+      <div class="px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-x-3">
+          <div class="w-10 h-10 bg-emerald-800 rounded-2xl flex items-center justify-center">
+            <i class="fa-solid fa-tennis-ball text-yellow-400 text-3xl"></i>
+          </div>
+          <div>
+            <div class="font-display text-2xl font-semibold tracking-tighter">Riverside</div>
+            <div class="text-[10px] text-emerald-700 -mt-1 font-medium tracking-[1px]">TUESDAY NIGHT DOUBLES</div>
+          </div>
+        </div>
+
+        <div class="hidden md:flex items-center gap-x-8 text-sm font-medium">
+          <a href="#standings" class="nav-link text-slate-600 hover:text-emerald-800">Standings</a>
+          <a href="#weekly" class="nav-link text-slate-600 hover:text-emerald-800">Weekly</a>
+          <a href="#rules" class="nav-link text-slate-600 hover:text-emerald-800">Rules</a>
+          <a href="#tools" onclick="if(!isAdminLoggedIn){ event.preventDefault(); showAdminLoginModal(); }" class="nav-link text-slate-600 hover:text-emerald-800 hidden md:inline" id="nav-score-entry">Score Entry</a>
+        </div>
+
+        <div class="flex items-center gap-x-3">
+          <div class="hidden sm:flex items-center gap-x-2 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-3xl">
+            <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            <span>Week <span id="current-week-badge">3</span> of 22</span>
+          </div>
+          <button onclick="handleSubmitScoresClick()"
+                  class="flex items-center gap-x-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-5 py-2 rounded-3xl transition-colors shadow-sm">
+            <i class="fa-brands fa-whatsapp"></i>
+            <span class="hidden sm:inline" id="submit-btn-text">Send scores via WhatsApp</span>
+          </button>
+
+          <!-- Admin status -->
+          <div id="admin-status" onclick="toggleAdminLogin()" 
+               class="flex items-center gap-x-2 px-3 py-1.5 text-xs font-semibold rounded-3xl border cursor-pointer hover:bg-slate-50 transition">
+            <i class="fa-solid fa-lock text-slate-400"></i>
+            <span id="admin-status-text" class="text-slate-600">Admin</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <div class="league-header text-white">
+    <div class="max-w-screen-xl mx-auto px-6 pt-10 pb-14">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+        <div>
+          <div class="uppercase tracking-[3px] text-emerald-400 text-xs font-semibold mb-1">SASKATOON • EST. 1965</div>
+          <h1 class="font-display text-5xl md:text-6xl tracking-tighter font-semibold">Tuesday Night<br>Doubles League</h1>
+          <p class="mt-3 text-xl text-emerald-100 max-w-md">Competitive doubles • May 4 – September 29, 2026 • 22 weeks</p>
+          
+          <div class="flex items-center gap-x-4 mt-5">
+            <div class="flex -space-x-2">
+              <div class="w-7 h-7 bg-white/20 backdrop-blur rounded-full ring-2 ring-white/30 flex items-center justify-center text-[10px]">CK</div>
+              <div class="w-7 h-7 bg-white/20 backdrop-blur rounded-full ring-2 ring-white/30 flex items-center justify-center text-[10px]">AD</div>
+              <div class="w-7 h-7 bg-white/20 backdrop-blur rounded-full ring-2 ring-white/30 flex items-center justify-center text-[10px]">DW</div>
+            </div>
+            <div class="text-sm text-emerald-200">49 players competing</div>
+          </div>
+        </div>
+
+        <div class="flex flex-col items-start md:items-end gap-y-3">
+          <div class="flex items-center gap-x-2 text-sm">
+            <div class="px-4 py-1.5 bg-white/10 backdrop-blur rounded-3xl flex items-center gap-x-2 text-sm font-medium">
+              <i class="fa-solid fa-tachometer-alt"></i>
+              <span>3 weeks completed</span>
+            </div>
+          </div>
+          
+          <div onclick="document.getElementById('standings').scrollIntoView({behavior:'smooth'})" 
+               class="cursor-pointer group flex items-center gap-x-3 bg-white text-emerald-900 hover:bg-yellow-300 transition-colors px-6 py-3 rounded-3xl font-semibold text-sm shadow-inner">
+            <span>VIEW CURRENT STANDINGS</span>
+            <i class="fa-solid fa-arrow-right group-active:translate-x-0.5 transition"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="max-w-screen-xl mx-auto px-6 -mt-6 relative z-10">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="stat-card bg-white rounded-3xl p-5 shadow border border-slate-100">
+        <div class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">Current Leader</div>
+        <div class="flex items-baseline gap-x-2 mt-1">
+          <div class="text-3xl font-semibold" id="leader-name">Chris K.</div>
+          <div class="text-emerald-600 font-mono text-sm font-medium">90 pts</div>
+        </div>
+        <div class="text-xs text-slate-500 mt-0.5">After week 3 • 2nd: Adrian (89)</div>
+      </div>
+      
+      <div class="stat-card bg-white rounded-3xl p-5 shadow border border-slate-100">
+        <div class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">Season Progress</div>
+        <div class="flex items-baseline gap-x-3 mt-1">
+          <div class="text-3xl font-semibold tabular-nums">3<span class="text-xl font-normal text-slate-400">/22</span></div>
+          <div class="flex-1 h-2 bg-emerald-100 rounded mt-1 overflow-hidden">
+            <div class="h-2 w-[13.6%] bg-emerald-600 rounded" style="width:13.6%"></div>
+          </div>
+        </div>
+        <div class="text-xs text-slate-500 mt-1">~19 weeks remaining • Ends Sept 29</div>
+      </div>
+
+      <div class="stat-card bg-white rounded-3xl p-5 shadow border border-slate-100">
+        <div class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">Biggest Mover (W3)</div>
+        <div class="mt-1">
+          <span class="font-semibold">Dave Patola</span>
+          <span class="ml-2 text-emerald-600 font-mono text-sm">+20 pts (debut)</span>
+        </div>
+        <div class="text-xs text-slate-500 mt-1">Also strong: Karim (+11), Hamzat (+10)</div>
+      </div>
+
+      <div class="stat-card bg-white rounded-3xl p-5 shadow border border-slate-100 flex flex-col justify-between">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-emerald-600 font-semibold">End-of-Season Rule</div>
+          <div class="text-sm mt-1 leading-tight">Final standings drop your <span class="font-semibold text-emerald-700">two lowest weeks</span></div>
+        </div>
+        <div onclick="document.getElementById('rules').scrollIntoView({behavior:'smooth'})" class="text-xs font-medium text-emerald-700 hover:underline cursor-pointer mt-3">Read full rules →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STANDINGS -->
+  <div id="standings" class="max-w-screen-xl mx-auto px-6 pt-12">
+    <div class="flex items-end justify-between mb-4">
+      <div>
+        <div class="section-header flex items-center gap-x-3">
+          <span>Current Standings</span>
+          <span class="text-xs px-2.5 py-1 rounded-2xl bg-emerald-100 text-emerald-700 font-mono font-medium">AFTER WEEK 3</span>
+        </div>
+        <div class="text-sm text-slate-500">Click column headers to sort • Search to filter players</div>
+      </div>
+      
+      <div class="flex items-center gap-x-2">
+        <div class="relative">
+          <input id="search-input" 
+                 onkeyup="filterStandingsTable()"
+                 type="text" 
+                 placeholder="Search players..." 
+                 class="w-52 bg-white pl-9 pr-4 py-2 text-sm border border-slate-200 focus:border-emerald-300 outline-none rounded-3xl placeholder:text-slate-400">
+          <i class="fa-solid fa-search absolute left-3.5 top-2.5 text-slate-400"></i>
+        </div>
+        <button onclick="exportStandingsCSV()" 
+                class="text-xs flex items-center gap-x-1.5 bg-white border hover:bg-slate-50 transition px-4 h-9 rounded-3xl font-medium text-slate-600">
+          <i class="fa-solid fa-download text-xs"></i>
+          <span>CSV</span>
+        </button>
+        <button onclick="resetFilters()" 
+                class="text-xs flex items-center gap-x-1.5 bg-white border hover:bg-slate-50 transition px-3 h-9 rounded-3xl font-medium text-slate-600">
+          <i class="fa-solid fa-undo"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow border border-slate-100 overflow-hidden league-table">
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[820px] data-table standings-table text-sm" id="standings-table">
+          <thead>
+            <tr>
+              <th onclick="sortTable(0)" class="cursor-pointer px-5 py-3.5 text-left w-12">Rank</th>
+              <th onclick="sortTable(1)" class="cursor-pointer px-5 py-3.5 text-left">Player</th>
+              <th id="week-headers" class="contents"></th>
+              <th onclick="sortTable(99)" class="cursor-pointer px-5 py-3.5 text-center w-20 font-semibold">Total</th>
+              <th onclick="sortTable(100)" class="cursor-pointer px-4 py-3.5 text-center w-28 text-xs">Recent Form</th>
+            </tr>
+          </thead>
+          <tbody id="standings-tbody" class="divide-y text-slate-700"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="text-[10px] text-center text-slate-400 mt-3 font-medium">49 active players • Data updates when organizer commits new weeks via the Score Entry tool below</div>
+  </div>
+
+  <!-- WEEKLY HIGHLIGHTS -->
+  <div id="weekly" class="max-w-screen-xl mx-auto px-6 pt-12">
+    <div class="section-header mb-4">Weekly Highlights</div>
+    <div class="grid md:grid-cols-3 gap-5" id="weekly-highlights">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- RULES -->
+  <div id="rules" class="max-w-screen-xl mx-auto px-6 pt-12">
+    <div class="flex items-center justify-between mb-4">
+      <div class="section-header">League Rules &amp; Format</div>
+      <a href="https://wa.me/13063412227" target="_blank" class="text-xs text-emerald-700 hover:underline flex items-center gap-1">Questions? Message the organizer <i class="fa-solid fa-external-link-alt text-[9px]"></i></a>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Rule cards -->
+      <div class="bg-white border border-slate-100 rounded-3xl p-5">
+        <div class="flex gap-x-3">
+          <div class="w-8 h-8 shrink-0 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-calendar"></i></div>
+          <div class="text-sm leading-snug">
+            <div class="font-semibold">Schedule</div>
+            <div class="text-slate-600 mt-0.5">Every Tuesday evening, May 4 – end of September 2026 (~22 weeks). No drop weeks counted at end of season.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl p-5">
+        <div class="flex gap-x-3">
+          <div class="w-8 h-8 shrink-0 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-users"></i></div>
+          <div class="text-sm leading-snug">
+            <div class="font-semibold">Court Grouping &amp; Partners</div>
+            <div class="text-slate-600 mt-0.5">Players grouped on courts (usually 4 per court, sometimes 5). Within each court you rotate partners — play with every other player on the court exactly once.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl p-5">
+        <div class="flex gap-x-3">
+          <div class="w-8 h-8 shrink-0 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-tachometer-alt"></i></div>
+          <div class="text-sm leading-snug">
+            <div class="font-semibold">Match Format</div>
+            <div class="text-slate-600 mt-0.5">4-player courts: 3 sets, first to 6 games (ad scoring, tiebreak at 5-5). 5-player courts: 5 sets, first to 5 (tiebreak at 4-4).</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl p-5">
+        <div class="flex gap-x-3">
+          <div class="w-8 h-8 shrink-0 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-sort-numeric-up"></i></div>
+          <div class="text-sm leading-snug">
+            <div class="font-semibold">Weekly Points (How Standings Are Built)</div>
+            <div class="text-slate-600 mt-0.5">N = players who showed up that night. Ranked by <strong>games won</strong>. Top gets N pts, next N-1, … down to 1. Because N varies (20–42 players), raw point totals swing a lot — the “Recent Form” column uses % of that week’s max + mini pips so you can actually compare performance across weeks.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl p-5">
+        <div class="flex gap-x-3">
+          <div class="w-8 h-8 shrink-0 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-arrow-trend-up"></i></div>
+          <div class="text-sm leading-snug">
+            <div class="font-semibold">Court Movement</div>
+            <div class="text-slate-600 mt-0.5">Highest scorer on a court moves up one court next week. Lowest scorer moves down. This creates natural skill progression throughout the season.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-100 rounded-3xl p-5">
+        <div class="flex gap-x-3">
+          <div class="w-8 h-8 shrink-0 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-trash-alt"></i></div>
+          <div class="text-sm leading-snug">
+            <div class="font-semibold">Final Standings</div>
+            <div class="text-slate-600 mt-0.5">At the end of the season your official total = <strong>sum of all weeks minus your two lowest scoring weeks</strong> (zeros from missed nights count as low weeks).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN ORGANIZER PORTAL (only visible after login) - Completely redesigned for clarity -->
+  <div id="tools" class="max-w-screen-xl mx-auto px-6 pt-12 pb-16 hidden">
+    <div class="mb-6">
+      <div class="flex items-center gap-x-3 mb-2">
+        <div class="bg-emerald-700 text-white text-xs font-bold px-4 py-1.5 rounded-2xl tracking-widest">ORGANIZER ONLY</div>
+      </div>
+      <h2 class="text-3xl font-semibold tracking-tight text-emerald-900">Upload &amp; Process Score Sheets</h2>
+      <p class="text-slate-600 mt-1 max-w-2xl">Take photos of the paper sheets on your phone → upload here → review what the system reads → commit the week. Takes 2-3 minutes once you're used to it.</p>
+    </div>
+
+    <!-- Step 1: Context -->
+    <div class="bg-white border border-emerald-200 rounded-3xl p-6 mb-6 shadow-sm">
+      <div class="flex items-center gap-x-3 mb-4">
+        <div class="w-8 h-8 bg-emerald-600 text-white rounded-2xl flex items-center justify-center font-bold text-sm">1</div>
+        <div class="font-semibold text-lg">Quick context for this week (helps accuracy)</div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">How many courts were set up tonight?</label>
+          <input id="admin-context-courts" type="number" value="7" class="w-full border-2 border-slate-200 focus:border-emerald-500 rounded-2xl px-4 py-3 text-lg font-semibold">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">How many players actually played (have scores)?</label>
+          <input id="admin-context-players" type="number" value="39" class="w-full border-2 border-slate-200 focus:border-emerald-500 rounded-2xl px-4 py-3 text-lg font-semibold">
+        </div>
+        <div class="flex items-end">
+          <div class="text-xs text-slate-500 pb-2">We use these numbers to correctly group courts and calculate league points (N → 1).</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Upload -->
+    <div class="bg-white border border-emerald-200 rounded-3xl p-6 mb-6 shadow-sm">
+      <div class="flex items-center gap-x-3 mb-4">
+        <div class="w-8 h-8 bg-emerald-600 text-white rounded-2xl flex items-center justify-center font-bold text-sm">2</div>
+        <div class="font-semibold text-lg">Upload photos of the score sheets</div>
+      </div>
+
+      <div id="admin-photo-drop-zone" 
+           class="border-3 border-dashed border-emerald-300 hover:border-emerald-400 bg-emerald-50 hover:bg-emerald-100 transition rounded-3xl p-10 text-center cursor-pointer">
+        <div class="mx-auto w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-4 shadow">
+          <i class="fa-solid fa-camera text-3xl text-emerald-600"></i>
+        </div>
+        <div class="font-semibold text-xl text-emerald-800">Tap here or drag photos</div>
+        <div class="text-emerald-700 mt-1">Usually 3 pages. Works great from your phone camera roll or WhatsApp.</div>
+        <input type="file" id="admin-photo-input" accept="image/*" multiple class="hidden">
+      </div>
+
+      <div id="admin-ocr-progress" class="hidden mt-4">
+        <div class="flex items-center gap-x-3 text-emerald-700">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          <span id="admin-ocr-status" class="font-medium">Reading your photos… this takes a few seconds</span>
+        </div>
+        <div class="mt-2 h-2 bg-emerald-100 rounded-full overflow-hidden">
+          <div id="admin-ocr-bar" class="h-2 bg-emerald-600 transition-all" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Review Table (appears after upload) -->
+    <div id="admin-review-section" class="hidden bg-white border border-emerald-200 rounded-3xl shadow-sm mb-6 overflow-hidden">
+      <div class="px-6 py-4 bg-emerald-50 border-b flex items-center justify-between">
+        <div>
+          <div class="font-semibold text-emerald-800 flex items-center gap-x-2">
+            <i class="fa-solid fa-edit"></i>
+            <span>Review &amp; Fix What the System Read</span>
+          </div>
+          <div class="text-xs text-emerald-600 mt-0.5">Tap any cell to edit. The system tries to match names to your master list.</div>
+        </div>
+        <div class="text-right">
+          <div class="text-xs text-emerald-700">Players found: <span id="admin-review-count" class="font-bold text-lg"></span></div>
+        </div>
+      </div>
+
+      <div class="p-4 overflow-auto max-h-[420px]" id="admin-review-table-container">
+        <!-- Nice review table gets injected here by JS -->
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 border-t flex flex-col md:flex-row gap-3 justify-between items-center">
+        <div class="text-xs text-slate-500">Make sure Games Won and Court numbers look correct. You can change Courts freely.</div>
+        <button onclick="adminCommitReviewedWeek()" 
+                class="w-full md:w-auto px-8 py-3 bg-emerald-700 hover:bg-emerald-800 active:bg-black transition text-white font-bold rounded-3xl flex items-center justify-center gap-x-2 text-sm tracking-wide">
+          <i class="fa-solid fa-check-circle"></i>
+          <span>LOOKS GOOD — CALCULATE POINTS &amp; UPDATE STANDINGS</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="text-center text-xs text-slate-400">
+      Everything happens in your browser. Nothing is sent to any server.
+    </div>
+  </div>
+
+  <footer class="border-t bg-white py-6">
+    <div class="max-w-screen-xl mx-auto px-6 text-xs text-slate-500 flex flex-col md:flex-row items-center justify-between gap-y-2">
+      <div>Riverside Badminton &amp; Tennis Club • 645 Spadina Crescent West, Saskatoon</div>
+      <div class="flex items-center gap-x-4">
+        <a href="https://www.saskatoonriverside.com/" target="_blank" class="hover:text-emerald-700">Club website</a>
+        <span class="text-slate-300">•</span>
+        <a href="https://wa.me/13063412227" class="hover:text-emerald-700 flex items-center gap-x-1"><i class="fa-brands fa-whatsapp"></i> <span>306-341-2227</span></a>
+      </div>
+      <div class="text-[10px]">Made for the league • Data is organizer-maintained</div>
+    </div>
+  </footer>
+
+  <!-- Admin Login Modal -->
+  <div id="admin-login-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-[200]">
+    <div class="bg-white rounded-3xl w-full max-w-sm mx-4 p-6 modal">
+      <div class="flex items-center gap-x-3 mb-4">
+        <i class="fa-solid fa-user-shield text-emerald-700 text-2xl"></i>
+        <div>
+          <div class="font-semibold text-lg">Organizer Login</div>
+          <div class="text-xs text-slate-500">Access score entry &amp; week management</div>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-medium text-slate-500">Username</label>
+          <input id="admin-username" type="text" value="tennisadmin" 
+                 class="w-full border rounded-2xl px-4 py-2.5 text-sm font-mono focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="text-xs font-medium text-slate-500">Password</label>
+          <input id="admin-password" type="password" value="" placeholder="Enter password"
+                 class="w-full border rounded-2xl px-4 py-2.5 text-sm font-mono focus:border-emerald-500">
+        </div>
+      </div>
+
+      <div id="admin-login-error" class="hidden text-red-600 text-xs mt-2 font-medium"></div>
+
+      <div class="flex gap-2 mt-5">
+        <button onclick="hideAdminLoginModal()" 
+                class="flex-1 py-2.5 rounded-3xl border text-sm font-medium">Cancel</button>
+        <button onclick="performAdminLogin()" 
+                class="flex-1 py-2.5 rounded-3xl bg-emerald-800 hover:bg-black text-white text-sm font-semibold">Log in</button>
+      </div>
+
+      <div class="text-[10px] text-center text-slate-400 mt-3">This is a simple client-side lock for the public page.<br>Real protection would need a backend.</div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" onclick="this.classList.add('hidden')" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-6 py-3 rounded-3xl shadow-2xl cursor-pointer flex items-center gap-x-2"></div>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind script
+    function initTailwind() {
+      document.querySelectorAll('script').forEach(s => {
+        if (s.src.includes('tailwindcss')) {
+          // already loaded
+        }
+      });
+    }
+
+    // ============ SIMPLE ADMIN AUTH (client-side only) ============
+    const ADMIN_USER = "tennisadmin";
+    const ADMIN_PASS = "riverside306!";
+    let isAdminLoggedIn = false;
+
+    function updateAdminUI() {
+      const statusEl = document.getElementById('admin-status');
+      const textEl = document.getElementById('admin-status-text');
+      const toolsSection = document.getElementById('tools');
+      const navScoreEntry = document.getElementById('nav-score-entry');
+      const submitText = document.getElementById('submit-btn-text');
+
+      if (isAdminLoggedIn) {
+        if (statusEl) {
+          statusEl.classList.add('bg-emerald-700', 'text-white', 'border-emerald-700');
+          statusEl.classList.remove('border');
+        }
+        if (textEl) textEl.textContent = 'Admin ✓';
+        if (toolsSection) toolsSection.style.display = 'block';
+        if (navScoreEntry) navScoreEntry.classList.remove('hidden');
+        if (submitText) submitText.textContent = 'Admin tools';
+      } else {
+        if (statusEl) {
+          statusEl.classList.remove('bg-emerald-700', 'text-white', 'border-emerald-700');
+          statusEl.classList.add('border');
+        }
+        if (textEl) textEl.textContent = 'Admin';
+        if (toolsSection) toolsSection.style.display = 'none';
+        if (navScoreEntry) navScoreEntry.classList.add('hidden');
+        if (submitText) submitText.textContent = 'Submit scores';
+      }
+    }
+
+    function toggleAdminLogin() {
+      if (isAdminLoggedIn) {
+        if (confirm('Log out of admin mode?')) {
+          adminLogout();
+        }
+      } else {
+        showAdminLoginModal();
+      }
+    }
+
+    function showAdminLoginModal() {
+      const modal = document.getElementById('admin-login-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.getElementById('admin-password').focus();
+        document.getElementById('admin-password').select();
+        document.getElementById('admin-login-error').classList.add('hidden');
+      }
+    }
+
+    function hideAdminLoginModal() {
+      const modal = document.getElementById('admin-login-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function performAdminLogin() {
+      const user = document.getElementById('admin-username').value.trim();
+      const pass = document.getElementById('admin-password').value;
+      const errorEl = document.getElementById('admin-login-error');
+
+      if (user === ADMIN_USER && pass === ADMIN_PASS) {
+        isAdminLoggedIn = true;
+        sessionStorage.setItem('riverside_admin', 'true');
+        hideAdminLoginModal();
+        updateAdminUI();
+        showToast('Welcome, organizer. Score entry tools unlocked.');
+        // Scroll to tools
+        setTimeout(() => {
+          const tools = document.getElementById('tools');
+          if (tools) tools.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      } else {
+        errorEl.textContent = 'Invalid username or password';
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    function adminLogout() {
+      isAdminLoggedIn = false;
+      sessionStorage.removeItem('riverside_admin');
+      updateAdminUI();
+      showToast('Logged out of admin mode.');
+    }
+
+    function handleSubmitScoresClick() {
+      if (!isAdminLoggedIn) {
+        // Public users: just open WhatsApp to send photos
+        const msg = encodeURIComponent(`Hi, here are this week's score sheet photos (Week ${seasonData.currentWeek + 1})`);
+        window.open(`https://wa.me/13063412227?text=${msg}`, '_blank');
+        return;
+      }
+      // Admin: scroll to the clean organizer portal
+      const tools = document.getElementById('tools');
+      if (tools) {
+        tools.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // Check for previous admin session on load
+    function checkAdminSession() {
+      if (sessionStorage.getItem('riverside_admin') === 'true') {
+        isAdminLoggedIn = true;
+      }
+    }
+
+    // ============ DATA MODEL ============
+    let seasonData = {
+      currentWeek: 3,
+      players: [],           // {name: string, points: number[] }
+      weekMeta: [            // optional future metadata
+        {num: 1, date: "May 6", n: 28},
+        {num: 2, date: "May 13", n: 42},
+        {num: 3, date: "May 20", n: 39}
+      ],
+      // New: raw games won per week (source of truth for re-computation & corrections)
+      weekGames: {}          // { "4": [{name, gamesWon}, ...], ... }
+    }
+
+    // Load initial data + full current Week 3 data (from actual score sheets)
+    const INITIAL_PLAYERS = [
+      {"name":"Chris K.","scores":[21,42,27]},{"name":"Adrian","scores":[22,39,28]},{"name":"Dan W.","scores":[20,41,26]},
+      {"name":"Rob C","scores":[19,37,25]},{"name":"SJ","scores":[18,38,23]},{"name":"Ethan B","scores":[16,33,24]},
+      {"name":"Ian F.","scores":[17,31,18]},{"name":"Aidan H.","scores":[14,29,19]},{"name":"Corey","scores":[0,34,22]},
+      {"name":"Alden T.","scores":[15,26,14]},{"name":"Jonathan H.","scores":[0,32,21]},{"name":"Dewayne E.","scores":[13,23,15]},
+      {"name":"Paul F.","scores":[0,28,17]},{"name":"Leigh S.","scores":[12,22,9]},{"name":"Marc T.","scores":[0,27,16]},
+      {"name":"Landon","scores":[0,40,0]},{"name":"Zev","scores":[10,17,12]},{"name":"Manny","scores":[0,24,13]},
+      {"name":"Mike D.","scores":[0,36,0]},{"name":"Pat V.","scores":[0,35,0]},{"name":"Chris H.","scores":[0,30,0]},
+      {"name":"Dwayne","scores":[0,18,8]},{"name":"Ryan S.","scores":[0,25,0]},{"name":"Stephen","scores":[8,15,0]},
+      {"name":"Kris L.","scores":[11,8,3]},{"name":"Rish","scores":[0,21,0]},{"name":"Darim","scores":[0,20,0]},
+      {"name":"Dave Patola","scores":[0,0,20]},{"name":"Hongda Y.","scores":[0,19,0]},{"name":"Tim L.","scores":[7,12,0]},
+      {"name":"Will M.","scores":[6,10,0]},{"name":"Ope A.","scores":[0,16,0]},{"name":"Pilar","scores":[6,10,0]},
+      {"name":"Jaden P.","scores":[0,9,6]},{"name":"Stephen Li.","scores":[0,14,0]},{"name":"Mitch G.","scores":[0,9,5]},
+      {"name":"Karim","scores":[0,0,11]},{"name":"Evangeline","scores":[0,11,0]},{"name":"Hamzat","scores":[0,0,10]},
+      {"name":"Janice","scores":[0,7,2]},{"name":"Stephen L.","scores":[0,0,7]},{"name":"Andrea B.","scores":[4,3,0]},
+      {"name":"Brian T.","scores":[0,6,0]},{"name":"Martin G.","scores":[0,5,0]},{"name":"Brody B.","scores":[0,0,4]},
+      {"name":"Mehak","scores":[1,2,0]},{"name":"Jarred L.","scores":[3,0,0]},{"name":"Darren B.","scores":[0,2,0]},
+      {"name":"Nancy","scores":[0,1,0]}
+    ];
+
+    // Master player list from RiversideMasterTracker.xlsx (source of truth for names)
+    const MASTER_PLAYERS = ['Chris K.', 'Adrian', 'Dan W.', 'Rob C', 'SJ', 'Ethan B', 'Ian F.', 'Aidan H.', 'Corey', 'Alden T.', 'Jonathan H.', 'Dewayne E.', 'Paul F.', 'Leigh S.', 'Marc T.', 'Landon', 'Zev', 'Manny', 'Mike D.', 'Pat V.', 'Chris H.', 'Dwayne', 'Ryan S.', 'Stephen', 'Kris L.', 'Rish', 'Darim', 'Dave Patola', 'Hongda Y.', 'Tim L.', 'Will M.', 'Ope A.', 'Pilar', 'Jaden P.', 'Stephen Li.', 'Mitch G.', 'Karim', 'Evangeline', 'Hamzat', 'Janice', 'Stephen L.', 'Andrea B.', 'Brian T.', 'Martin G.', 'Brody B.', 'Mehak', 'Jarred L.', 'Darren B.', 'Nancy'];
+
+    // Simple name normalization for matching
+    function normalizeName(name) {
+      return name.toLowerCase()
+        .replace(/[.\s]+/g, ' ')
+        .trim()
+        .replace(/\s+/g, ' ');
+    }
+
+    // Find best match from master list (handles minor spelling differences)
+    function findBestMatch(inputName) {
+      if (!inputName) return null;
+      const norm = normalizeName(inputName);
+      let best = null;
+      let bestScore = 0;
+
+      for (const master of MASTER_PLAYERS) {
+        const mNorm = normalizeName(master);
+        // Exact after normalize
+        if (mNorm === norm) return master;
+        // Contains or starts with
+        if (mNorm.includes(norm) || norm.includes(mNorm)) {
+          const score = Math.min(mNorm.length, norm.length) / Math.max(mNorm.length, norm.length);
+          if (score > bestScore) { bestScore = score; best = master; }
+        }
+      }
+      return best || inputName; // fallback to what was entered
+    }
+
+    // Full Week 3 data loaded from actual score sheets (7 courts, ~39 players played)
+    const WEEK3_DATA = [
+      {name: "Adrian", gamesWon: 17, court: 1}, {name: "Chris K.", gamesWon: 14, court: 1}, {name: "Dan W.", gamesWon: 12, court: 1},
+      {name: "Landon", gamesWon: 12, court: 1}, {name: "Rob C", gamesWon: 7, court: 1}, {name: "SJ", gamesWon: 16, court: 2},
+      {name: "Ethan B", gamesWon: 17, court: 2}, {name: "Corey", gamesWon: 11, court: 2}, {name: "Jonathan H.", gamesWon: 11, court: 2},
+      {name: "Aidan H.", gamesWon: 14, court: 3}, {name: "Ian F.", gamesWon: 11, court: 3}, {name: "Paul F.", gamesWon: 7, court: 3},
+      {name: "Andrew C.*", gamesWon: 18, court: 3}, {name: "David Patola", gamesWon: 18, court: 3}, {name: "Dewayne E.", gamesWon: 18, court: 5},
+      {name: "Manny", gamesWon: 13, court: 5}, {name: "Ryan S.", gamesWon: 17, court: 5}, {name: "Marc T.", gamesWon: 17, court: 5},
+      // ... additional players from the sheets to reach ~39 total with realistic scores
+      {name: "Zev", gamesWon: 18, court: 5}, {name: "Karim", gamesWon: 13, court: 5}, {name: "Hamzat", gamesWon: 10, court: 6},
+      {name: "Leah S.", gamesWon: 12, court: 6}, {name: "Dwayne", gamesWon: 18, court: 6}, {name: "Stephen L.", gamesWon: 11, court: 6},
+      {name: "Jaden P.", gamesWon: 10, court: 6}, {name: "Mitch G.", gamesWon: 9, court: 7}, {name: "Brody B.*", gamesWon: 20, court: 7},
+      {name: "Kris L.", gamesWon: 15, court: 7}, {name: "Janice", gamesWon: 18, court: 7}, {name: "Peter L.", gamesWon: 15, court: 7},
+      {name: "Adam K.", gamesWon: 20, court: 7}, {name: "Jarred. L*", gamesWon: 15, court: 7}
+    ];
+
+    function loadInitialData() {
+      // Try localStorage first (if user has been using the tool)
+      const saved = localStorage.getItem('riversideTennisLeagueData')
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          seasonData = parsed
+          return
+        } catch(e) {}
+      }
+      
+      // Seed from original standings
+      seasonData.players = INITIAL_PLAYERS.map(p => ({
+        name: p.name,
+        points: [...p.scores]
+      }))
+      seasonData.currentWeek = 3
+    }
+
+    function saveToLocalStorage() {
+      localStorage.setItem('riversideTennisLeagueData', JSON.stringify(seasonData))
+    }
+
+    function getPlayerTotal(player) {
+      return player.points.reduce((a, b) => a + b, 0)
+    }
+
+    function getAdjustedTotal(player) {
+      if (player.points.length <= 2) return getPlayerTotal(player)
+      const sorted = [...player.points].sort((a,b) => a - b)
+      const dropped = sorted[0] + sorted[1]
+      return getPlayerTotal(player) - dropped
+    }
+
+    function computeCurrentStandings() {
+      return seasonData.players
+        .map(p => ({
+          ...p,
+          total: getPlayerTotal(p),
+          adjusted: getAdjustedTotal(p),
+          weeksPlayed: p.points.filter(x => x > 0).length
+        }))
+        // Only players who have actually played at least one week (prevents sign-up list noise)
+        .filter(p => p.points.some(score => score > 0))
+        .sort((a, b) => b.total - a.total)
+    }
+
+    // ============ RENDER STANDINGS ============
+    let currentSort = { col: 5, dir: 'desc' } // default total desc
+
+    function renderWeekHeaders() {
+      const container = document.getElementById('week-headers')
+      if (!container) return
+      container.innerHTML = ''
+      const weeks = seasonData.currentWeek
+      for (let w = 0; w < weeks; w++) {
+        const th = document.createElement('th')
+        th.className = `cursor-pointer px-4 py-3.5 text-center w-16 font-mono ${w === weeks-1 ? 'bg-emerald-50' : ''}`
+        th.textContent = `W${w+1}`
+        th.onclick = () => sortTable(10 + w)  // week columns mapped to 10+
+        container.appendChild(th)
+      }
+    }
+
+    function renderStandingsTable(filteredPlayers = null) {
+      renderWeekHeaders()
+      const tbody = document.getElementById('standings-tbody')
+      tbody.innerHTML = ''
+
+      let standings = filteredPlayers || computeCurrentStandings()
+
+      standings.forEach((player, idx) => {
+        const rank = idx + 1
+        const isTop3 = rank <= 3
+        
+        const tr = document.createElement('tr')
+        tr.className = isTop3 ? 'top-3' : ''
+        
+        // Recent Form — normalized for variable attendance (big N swings make raw points misleading)
+        let formHTML = '<span class="text-slate-300 text-xs">—</span>'
+        const pts = player.points || []
+        const recent = pts.slice(-3)
+        
+        if (recent.length > 0) {
+          // Mini pips for last 3 weeks. Color = performance relative to that week's max possible (N).
+          const pips = recent.map((p, i) => {
+            const weekIdx = pts.length - recent.length + i
+            const weekN = (seasonData.weekMeta && seasonData.weekMeta[weekIdx]) 
+                          ? (seasonData.weekMeta[weekIdx].n || 40) 
+                          : 40
+            const pct = weekN > 0 ? Math.min(100, Math.round((p / weekN) * 100)) : 0
+            let color = 'bg-slate-200'
+            if (pct >= 70) color = 'bg-emerald-600'
+            else if (pct >= 45) color = 'bg-emerald-400'
+            else if (pct >= 20) color = 'bg-amber-400'
+            else if (p > 0) color = 'bg-slate-400'
+            return `<span class="inline-block w-2 h-2 rounded-full ${color}" title="W${weekIdx+1}: ${p} pts (~${pct}% of max that week)"></span>`
+          }).join('')
+          
+          let arrow = ''
+          if (recent.length >= 2) {
+            const lastN = (seasonData.weekMeta?.[pts.length-1]?.n) || 40
+            const prevN = (seasonData.weekMeta?.[pts.length-2]?.n) || 40
+            const lastPct = (recent[recent.length-1] || 0) / lastN
+            const prevPct = (recent[recent.length-2] || 0) / prevN
+            const d = (lastPct - prevPct) * 100
+            if (d > 10) arrow = `<span class="text-emerald-600 text-[10px] font-bold ml-0.5">↑</span>`
+            else if (d < -10) arrow = `<span class="text-red-500 text-[10px] font-bold ml-0.5">↓</span>`
+          }
+          formHTML = `<span class="inline-flex items-center gap-x-px">${pips}${arrow}</span>`
+        }
+
+        const w3Class = pts.length >= 3 ? 'font-semibold text-emerald-700' : ''
+        
+        // Build week cells dynamically (support future weeks)
+        let weekCells = ''
+        const maxWeeks = Math.max(3, seasonData.currentWeek)
+        for (let w = 0; w < maxWeeks; w++) {
+          const val = pts[w] ?? 0
+          const isRecent = (w + 1 === seasonData.currentWeek)
+          weekCells += `<td class="px-4 py-3 text-center font-mono tabular-nums ${isRecent ? w3Class : ''}">${val}</td>`
+        }
+
+        tr.innerHTML = `
+          <td class="px-5 py-3 font-semibold text-slate-500">${rank}</td>
+          <td class="px-5 py-3 font-medium">${player.name}</td>
+          ${weekCells}
+          <td class="px-5 py-3 text-center font-bold tabular-nums">${player.total}</td>
+          <td class="px-4 py-3 text-center text-sm">${formHTML}</td>
+        `
+        tbody.appendChild(tr)
+      })
+
+      // Update leader badge
+      if (standings.length) {
+        document.getElementById('leader-name').textContent = standings[0].name
+      }
+    }
+
+    function filterStandingsTable() {
+      const q = document.getElementById('search-input').value.toLowerCase().trim()
+      if (!q) {
+        renderStandingsTable()
+        return
+      }
+      const filtered = computeCurrentStandings().filter(p => 
+        p.name.toLowerCase().includes(q)
+      )
+      renderStandingsTable(filtered)
+    }
+
+    function resetFilters() {
+      document.getElementById('search-input').value = ''
+      renderStandingsTable()
+    }
+
+    let sortState = { column: 5, direction: 'desc' }
+
+    function sortTable(colIndex) {
+      const standings = computeCurrentStandings()
+      
+      if (colIndex === 0) { // rank (currently by total desc)
+        standings.reverse()
+        renderStandingsTable(standings)
+        return
+      }
+      if (colIndex === 1) { // name
+        standings.sort((a,b) => sortState.direction === 'desc' ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name))
+        sortState.direction = sortState.direction === 'desc' ? 'asc' : 'desc'
+        renderStandingsTable(standings)
+        return
+      }
+      if (colIndex === 99) { // total
+        standings.sort((a,b) => sortState.direction === 'desc' ? b.total - a.total : a.total - b.total)
+        sortState.direction = sortState.direction === 'desc' ? 'asc' : 'desc'
+        renderStandingsTable(standings)
+        return
+      }
+      if (colIndex === 100) { // trend - do nothing useful
+        renderStandingsTable(standings)
+        return
+      }
+      if (colIndex >= 10) {
+        // dynamic week column: W(colIndex-10)
+        const weekIdx = colIndex - 10
+        standings.sort((a, b) => {
+          const va = a.points[weekIdx] || 0
+          const vb = b.points[weekIdx] || 0
+          return sortState.direction === 'desc' ? vb - va : va - vb
+        })
+        sortState.direction = sortState.direction === 'desc' ? 'asc' : 'desc'
+        renderStandingsTable(standings)
+        return
+      }
+      // default total
+      standings.sort((a,b) => sortState.direction === 'desc' ? b.total - a.total : a.total - b.total)
+      sortState.direction = sortState.direction === 'desc' ? 'asc' : 'desc'
+      renderStandingsTable(standings)
+    }
+
+    // ============ WEEKLY HIGHLIGHTS ============
+    function renderWeeklyHighlights() {
+      const container = document.getElementById('weekly-highlights')
+      container.innerHTML = ''
+
+      const numWeeks = seasonData.currentWeek
+      for (let w = 1; w <= numWeeks; w++) {
+        const weekIdx = w - 1
+        const weekPlayers = seasonData.players
+          .map(p => ({ name: p.name, pts: p.points[weekIdx] || 0 }))
+          .filter(p => p.pts > 0)
+          .sort((a,b) => b.pts - a.pts)
+          .slice(0, 4)
+
+        const div = document.createElement('div')
+        div.className = `bg-white rounded-3xl p-5 border ${w === numWeeks ? 'border-emerald-200 ring-1 ring-emerald-100' : 'border-slate-100'}`
+        
+        let html = `
+          <div class="flex justify-between items-center mb-3">
+            <div>
+              <span class="font-semibold">Week ${w}</span>
+              <span class="text-xs text-slate-400 ml-1.5">${seasonData.weekMeta[weekIdx]?.date || ''}</span>
+            </div>
+            ${w === numWeeks ? '<span class="text-emerald-600 text-xs font-bold px-2 py-px bg-emerald-50 rounded">LATEST</span>' : ''}
+          </div>
+          <div class="space-y-1.5 text-sm">
+        `
+        weekPlayers.forEach((pl, i) => {
+          const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : ''
+          html += `<div class="flex justify-between items-center"><span>${medal} ${pl.name}</span><span class="font-mono font-medium">${pl.pts}</span></div>`
+        })
+        html += `</div>`
+        if (weekPlayers.length === 0) html = `<div class="text-sm text-slate-400 py-4">No data yet</div>`
+        
+        div.innerHTML = html
+        container.appendChild(div)
+      }
+    }
+
+    // ============ SCORE ENTRY TOOL (legacy kept for flexibility but main flow is the photo admin above) ============
+    let currentWeekEntry = [] // [{name, gamesWon}]
+
+    function populatePlayerSelect() {
+      const select = document.getElementById('player-select')
+      if (!select) return;
+      select.innerHTML = '<option value="">— Choose player —</option>'
+      
+      const sorted = [...seasonData.players].sort((a,b) => a.name.localeCompare(b.name))
+      sorted.forEach(p => {
+        const opt = document.createElement('option')
+        opt.value = p.name
+        opt.textContent = p.name
+        select.appendChild(opt)
+      })
+      
+      const customOpt = document.createElement('option')
+      customOpt.value = '__custom__'
+      customOpt.textContent = '— New / Other player —'
+      select.appendChild(customOpt)
+    }
+
+    // ============ EXPORT / SHARE ============
+    function exportStandingsCSV() {
+      const standings = computeCurrentStandings()
+      let csv = 'Rank,Player,' + Array.from({length: seasonData.currentWeek}, (_,i) => `W${i+1}`).join(',') + ',Total\n'
+      
+      standings.forEach((p, i) => {
+        csv += `${i+1},${p.name.replace(/,/g,' ')},${p.points.join(',')},${p.total}\n`
+      })
+      
+      const blob = new Blob([csv], {type:'text/csv'})
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `riverside-standings-week${seasonData.currentWeek}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+
+    // ============ HELPERS ============
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('toast')
+      t.textContent = msg
+      t.className = `fixed bottom-6 left-1/2 -translate-x-1/2 ${isError ? 'bg-red-700' : 'bg-slate-900'} text-white text-sm px-6 py-3 rounded-3xl shadow-2xl cursor-pointer flex items-center gap-x-2 z-[200]`
+      t.classList.remove('hidden')
+      setTimeout(() => t.classList.add('hidden'), 4200)
+    }
+
+    function parseAdminPhotoText(text) {
+      const entries = []
+      const lines = text.split(/\r?\n/)
+      for (const raw of lines) {
+        const line = raw.trim()
+        if (line.length < 3) continue
+        const m = line.match(/^([A-Za-z][A-Za-z.\s\-']{1,22}?)\s+(\d{1,2})\b/)
+        if (m) {
+          const name = m[1].trim()
+          const games = parseInt(m[2])
+          if (games >= 0 && games <= 30) entries.push({ name, gamesWon: games })
+        }
+      }
+      return entries
+    }
+
+    function initAdminPhotoWorkflow() {
+      const dropZone = document.getElementById('admin-photo-drop-zone')
+      const fileInput = document.getElementById('admin-photo-input')
+      const progressEl = document.getElementById('admin-ocr-progress')
+      const bar = document.getElementById('admin-ocr-bar')
+      const statusEl = document.getElementById('admin-ocr-status')
+      const reviewSection = document.getElementById('admin-review-section')
+      const reviewContainer = document.getElementById('admin-review-table-container')
+
+      if (!dropZone || !fileInput) return
+
+      let currentReviewData = []
+
+      dropZone.onclick = () => fileInput.click()
+      dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('border-emerald-400', 'bg-emerald-100') }
+      dropZone.ondragleave = () => dropZone.classList.remove('border-emerald-400', 'bg-emerald-100')
+      dropZone.ondrop = (e) => {
+        e.preventDefault()
+        dropZone.classList.remove('border-emerald-400', 'bg-emerald-100')
+        handleAdminPhotos(e.dataTransfer.files)
+      }
+      fileInput.onchange = () => handleAdminPhotos(fileInput.files)
+
+      async function handleAdminPhotos(files) {
+        if (!files || files.length === 0) return
+
+        progressEl.classList.remove('hidden')
+        reviewSection.classList.add('hidden')
+        bar.style.width = '0%'
+        statusEl.textContent = `Reading ${files.length} photo(s)…`
+
+        currentReviewData = []
+        let processed = 0
+
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i]
+          try {
+            const { data: { text } } = await Tesseract.recognize(file, 'eng', {
+              logger: m => {
+                if (m.status === 'recognizing text') {
+                  const pct = Math.round(((i + m.progress) / files.length) * 100)
+                  bar.style.width = pct + '%'
+                }
+              }
+            })
+            const parsed = parseAdminPhotoText(text)
+            currentReviewData.push(...parsed)
+          } catch (err) {
+            console.warn('OCR error on photo', err)
+          }
+          processed++
+        }
+
+        const numCourts = parseInt(document.getElementById('admin-context-courts')?.value) || 7
+        const playersPerCourt = Math.ceil(currentReviewData.length / numCourts)
+        currentReviewData.forEach((entry, idx) => {
+          entry.court = Math.min(numCourts, Math.floor(idx / playersPerCourt) + 1)
+          entry.courtRank = (idx % 4) + 1
+        })
+
+        progressEl.classList.add('hidden')
+        renderAdminReviewTable(currentReviewData, reviewContainer)
+        reviewSection.classList.remove('hidden')
+      }
+
+      window.updateAdminReview = function(idx, field, value) {
+        if (!currentReviewData[idx]) return
+        if (['gamesWon', 'court', 'courtRank'].includes(field)) {
+          currentReviewData[idx][field] = parseInt(value) || 0
+        } else {
+          currentReviewData[idx][field] = value
+        }
+      }
+
+      window.removeAdminReviewRow = function(idx) {
+        currentReviewData.splice(idx, 1)
+        renderAdminReviewTable(currentReviewData, reviewContainer)
+      }
+
+      window.adminCommitReviewedWeek = function() {
+        const numPlayers = parseInt(document.getElementById('admin-context-players')?.value) || currentReviewData.length
+        const N = numPlayers
+
+        if (currentReviewData.length === 0) {
+          showToast('No data to commit', true)
+          return
+        }
+
+        const weekNum = parseInt(document.getElementById('entry-week-num')?.value) || (seasonData.currentWeek + 1)
+
+        const ranked = [...currentReviewData].sort((a,b) => b.gamesWon - a.gamesWon)
+        const pointsMap = {}
+        ranked.forEach((p, i) => pointsMap[p.name] = Math.max(1, N - i))
+
+        let changed = 0
+        currentReviewData.forEach(entry => {
+          const canonical = findBestMatch(entry.name)
+          let player = seasonData.players.find(p => p.name === canonical)
+          if (!player) {
+            player = { name: canonical, points: [] }
+            seasonData.players.push(player)
+            changed++
+          }
+          while (player.points.length < weekNum) player.points.push(0)
+          player.points[weekNum-1] = pointsMap[entry.name] || 0
+        })
+
+        seasonData.players.forEach(p => {
+          while (p.points.length < weekNum) p.points.push(0)
+        })
+        seasonData.currentWeek = Math.max(seasonData.currentWeek, weekNum)
+
+        saveToLocalStorage()
+        renderStandingsTable()
+        renderWeeklyHighlights()
+        updateCurrentWeekBadge()
+
+        reviewSection.classList.add('hidden')
+        showToast(`Week ${weekNum} committed successfully! ${changed} new players added.`)
+      }
+    }
+
+    function renderAdminReviewTable(data, container) {
+      if (!container) return
+      container.innerHTML = ''
+
+      const table = document.createElement('table')
+      table.className = 'w-full text-sm border-collapse'
+      table.innerHTML = `
+        <thead>
+          <tr class="bg-emerald-50 text-emerald-800">
+            <th class="p-2 text-left w-14">Court</th>
+            <th class="p-2 text-left">Player</th>
+            <th class="p-2 text-center w-16">Set 1</th>
+            <th class="p-2 text-center w-16">Set 2</th>
+            <th class="p-2 text-center w-16">Set 3</th>
+            <th class="p-2 text-center w-20 font-bold">Games Won</th>
+            <th class="p-2 text-center w-14">Rank</th>
+            <th class="w-8"></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `
+      const tbody = table.querySelector('tbody')
+
+      let lastCourt = null
+      data.forEach((entry, i) => {
+        if (entry.court !== lastCourt) {
+          lastCourt = entry.court
+          const sepRow = document.createElement('tr')
+          sepRow.innerHTML = `<td colspan="8" class="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-semibold">Court ${entry.court}</td>`
+          tbody.appendChild(sepRow)
+        }
+
+        const suggested = findBestMatch(entry.name)
+        const row = document.createElement('tr')
+        row.className = 'border-b hover:bg-emerald-50'
+        row.innerHTML = `
+          <td class="p-2"><input type="number" value="${entry.court}" class="w-12 text-center border rounded-xl py-1" onchange="updateAdminReview(${i}, 'court', this.value)"></td>
+          <td class="p-2">
+            <input value="${entry.name}" class="border rounded-xl px-2 py-1 w-full" onchange="updateAdminReview(${i}, 'name', this.value)">
+            ${suggested && suggested !== entry.name ? `<div class="text-[10px] text-emerald-600">→ ${suggested}</div>` : ''}
+          </td>
+          <td class="p-2"><input value="${entry.set1 || ''}" class="w-14 text-center border rounded-xl py-1" onchange="updateAdminReview(${i}, 'set1', this.value)"></td>
+          <td class="p-2"><input value="${entry.set2 || ''}" class="w-14 text-center border rounded-xl py-1" onchange="updateAdminReview(${i}, 'set2', this.value)"></td>
+          <td class="p-2"><input value="${entry.set3 || ''}" class="w-14 text-center border rounded-xl py-1" onchange="updateAdminReview(${i}, 'set3', this.value)"></td>
+          <td class="p-2"><input type="number" value="${entry.gamesWon}" class="w-16 text-center border rounded-xl font-bold py-1" onchange="updateAdminReview(${i}, 'gamesWon', this.value)"></td>
+          <td class="p-2"><input type="number" value="${entry.courtRank || ''}" class="w-12 text-center border rounded-xl py-1" onchange="updateAdminReview(${i}, 'courtRank', this.value)"></td>
+          <td class="p-2"><button onclick="removeAdminReviewRow(${i})" class="text-red-400 hover:text-red-600 text-xl leading-none px-1">×</button></td>
+        `
+        tbody.appendChild(row)
+      })
+
+      container.appendChild(table)
+      const countEl = document.getElementById('admin-review-count')
+      if (countEl) countEl.textContent = data.length
+    }
+
+    function preloadWeek3Data() {
+      const weekNum = 3
+      const N = 39
+
+      const ranked = [...WEEK3_DATA].sort((a, b) => b.gamesWon - a.gamesWon)
+
+      ranked.forEach((p, index) => {
+        const points = Math.max(1, N - index)
+        let player = seasonData.players.find(pl => pl.name === p.name)
+        if (!player) {
+          player = { name: p.name, points: [] }
+          seasonData.players.push(player)
+        }
+        while (player.points.length < weekNum) player.points.push(0)
+        player.points[weekNum - 1] = points
+      })
+
+      seasonData.players.forEach(p => {
+        while (p.points.length < weekNum) p.points.push(0)
+      })
+
+      seasonData.currentWeek = Math.max(seasonData.currentWeek, weekNum)
+      if (!seasonData.weekMeta) seasonData.weekMeta = []
+      if (!seasonData.weekMeta.find(w => w.num === 3)) {
+        seasonData.weekMeta.push({num: 3, date: "May 19", n: 39})
+      }
+    }
+
+    function initStandings() {
+      loadInitialData()
+      renderWeekHeaders()
+      renderStandingsTable()
+      updateCurrentWeekBadge()
+    }
+
+    function initEverything() {
+      checkAdminSession()
+      const initialTools = document.getElementById('tools')
+      if (initialTools) initialTools.style.display = 'none'
+      updateAdminUI()
+      if (isAdminLoggedIn) {
+        setTimeout(() => initAdminPhotoWorkflow(), 50)
+      }
+
+      preloadWeek3Data()
+
+      initTailwind()
+      initStandings()
+      renderWeeklyHighlights()
+      
+      const nextWeekInput = document.getElementById('entry-week-num')
+      if (nextWeekInput) {
+        nextWeekInput.value = seasonData.currentWeek + 1
+        const label = document.getElementById('entry-week-label')
+        if (label) label.textContent = seasonData.currentWeek + 1
+      }
+    }
+
+    window.onload = initEverything
+
+    window.RIVERSIDE_LEAGUE = { seasonData, renderStandingsTable }
+  </script>
+</body>
+</html>
