@@ -1,0 +1,17 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*~
+.vscode/
+.idea/
+
+# Local backups / temp
+*.bak
+*.tmp
+index.html.bak
+
+# Large or private (if any future)
+# *.xlsx  -- we WANT the master tracker and ground truth in the repo for recoverability
