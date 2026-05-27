@@ -26,28 +26,32 @@ This repository is intentionally **self-contained and recoverable**. If your com
 
 1. `git clone https://github.com/smeagster86/riverside-tuesday-tennis.git`
 2. Open `index.html` in any browser
-3. Have **full context**: the app + every planning decision + the original score sheet photos + the master player spreadsheet + ground-truth parsed data.
+3. Have **full context**: the app + every planning decision + (when assets are fully synchronized via Git LFS) the original score sheet photos + the master player spreadsheet + ground-truth parsed data + complete decision history.
 
 ### Repository Structure
 
 ```
 riverside-tuesday-tennis/
 ├── index.html                 # The complete single-file app (Tailwind + Tesseract OCR)
-├── README.md                  # You are here
-├── LEAGUE_LOGIC_CONSIDERATIONS.md   # Zoomed-out thinking on league operations, edge cases, future needs
+├── README.md                  # You are here (quick start + recoverability pitch)
+├── LEAGUE_LOGIC_CONSIDERATIONS.md   # Historical 2026-05-25 zoomed-out league ops thinking
 ├── .gitignore
 │
-├── data/                      # Seed / historical data (JSON)
+├── docs/                      # Full project memory & history (start here after README on a new machine)
+│   ├── INDEX.md                 # Documentation navigation
+│   ├── PROJECT_CONTEXT.md       # Living central document: architecture, decisions, iterations, artifacts, recover playbook
+│   └── DECISIONS.md             # Structured lightweight ADR log of key choices & tradeoffs
+│
+├── data/                      # Seed / historical data (JSON) — see docs/ for inventory
 ├── players-initial.json
 │
 ├── score-sheets/              # Raw source material (the heart of recoverability)
 │   └── week-3/
-│       ├── page1.jpeg ... page3.jpeg     # Actual handwritten score sheets from the night
-│       ├── Actual Score.png              # The clean target table format
-│       ├── RiversideMasterTracker.xlsx   # Master player list + historical scores (source of truth for names)
-│       ├── week3_parsed_review.xlsx      # Detailed parsing notes, ground truth, court cues, analysis tabs
-│       ├── week3_ground_truth.*          # Structured transcription used to tune OCR/parser
-│       └── *.py                            # Helper scripts used during analysis
+│       ├── page1.jpeg ... page3.jpeg     # Actual handwritten score sheets
+│       ├── Actual Score.png              # Target table format
+│       ├── RiversideMasterTracker.xlsx   # Master player list (source of truth for names)
+│       ├── week3_parsed_review.xlsx      # Parsing notes + ground truth + analysis tabs
+│       └── *.py                            # Helper scripts with transcription, challenges, open questions
 │
 └── (vercel.json, middleware.js, package.json — deployment config)
 ```
@@ -74,15 +78,17 @@ Early in the project we realized that a tennis ladder run from paper score sheet
 - Court groupings and physical court numbers matter for movement rules and future pairing stats.
 - The organizer needs an extremely phone-friendly flow because scores arrive as photos on WhatsApp.
 
-The documents and raw files in this repo capture all of that thinking so nothing is lost when we pick the project back up on a different device or after a long break.
+The documents (especially `docs/PROJECT_CONTEXT.md` and `docs/DECISIONS.md`) plus raw files in this repo capture all of that thinking + the actual source materials so nothing is lost when we pick the project back up on a different device or after a long break.
 
 ## Recovering / Continuing Work From Another Computer
 
 1. Clone or download this repo.
 2. Open `index.html` — the current season data + Week 3 is pre-loaded.
-3. All reference photos and the master Excel are present for re-running OCR experiments or manual transcription.
-4. The `LEAGUE_LOGIC_CONSIDERATIONS.md` file contains the broader design thoughts we discussed.
+3. **Read in order:** root README → `docs/INDEX.md` → `docs/PROJECT_CONTEXT.md` (the living bible) → `LEAGUE_LOGIC_CONSIDERATIONS.md`.
+4. All reference photos, master Excel, ground-truth scripts, and analysis notes are (or will be, once Git LFS sync is complete) present for re-running OCR experiments or manual transcription.
 5. When you make improvements, just commit + push. Vercel will redeploy the site automatically.
+
+**Important note on large assets (photos, xlsx):** These exist in the full local history for recoverability but may require `git lfs` tracking + push to be present on every clone. See `docs/PROJECT_CONTEXT.md` (Recoverability Playbook section) for exact steps. The documentation itself is always fully available on GitHub.
 
 ## Tech Notes
 
@@ -99,4 +105,4 @@ Questions? Message the organizer via the WhatsApp link in the app.
 
 ---
 
-**Last major update:** Week 3 data + full intuitive admin photo portal + all supporting artifacts centralized for recoverability.
+**Last major update:** Added comprehensive `docs/` (PROJECT_CONTEXT.md, DECISIONS.md, INDEX.md) + README refresh for complete long-term recoverability and historical clarity. Full asset synchronization via Git LFS remains the final step for the raw photos/spreadsheets.
