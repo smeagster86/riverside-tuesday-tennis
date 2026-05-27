@@ -251,16 +251,54 @@ A single-file app benefits enormously from cohesion. Future-you (or any new-mach
 
 ---
 
+## D-009: Pre-Commit Validation + Canonical-Name Deduplication Hardening + Full Rich weekGames Persistence
+
+**Date:** 2026-05 (post D-008 hardening pass)  
+**Status:** Implemented
+
+**Deciders:** Documentation Curator (reflecting latest code changes)
+
+**Context / Problem:** 
+Post D-008, the adminCommitReviewedWeek path performed global N-point allocation and player updates without guards against OCR-induced duplicate names (name collision corruption), entry count vs declared N mismatches, or implausible gamesWon values. The rich `weekGames` structure (required for future player pairing/partner analytics per LEAGUE_LOGIC_CONSIDERATIONS.md §7) was only populated by the Week 3 preload; live photo commits wrote only the derived `points[]` arrays. Architecture comment and data model docs were ahead of implementation.
+
+**Options Considered:**
+- Keep minimal guards + aspirational "rich data" docs (risk of silent corruption or incomplete analytics data).
+- Add early canonical dedup + lightweight validation + persist every field from the review table on every commit (chosen).
+
+**Decision:** 
+In the commit handler:
+- Perform canonicalization + deduplication via byCanonical Map (using findBestMatch) *before* any ranking or point allocation.
+- Insert basic pre-commit validation (deduped.length vs N; per-player gamesWon range sanity checks) that surfaces issues via toast (non-blocking to preserve organizer override).
+- Build and persist full `weekEntries` including: court, name (canonical), gamesWon, courtRank, rawName (original if differed), set1/set2/set3 (plus update weekMeta with n/date).
+- Update the top-level Architecture notes comment to accurately describe the richer model and new validation.
+
+**Rationale:** 
+Closes the exact gap flagged in D-008 follow-up. Dedup-by-canonical before allocation prevents corrupted points from variant spellings. Rich per-set + court data now actually written enables the partner analytics the project has planned since Week 3 ground-truth work. Validation catches the most common review-table mistakes immediately. All changes keep the phone UX lightweight.
+
+**Trade-offs & Consequences:**
+- Commit path is slightly longer but remains the single clear happy path.
+- Validation is advisory (toast + proceed) for v1; can be made stricter later.
+- Every future week commit now carries the complete data model the docs always described — no more "seed only" limitation. Directly supports LEAGUE §7 use cases.
+
+**Artifacts / Implementation:**
+- `index.html`: adminCommitReviewedWeek (canonical byCanonical block ~1227, validationErrors ~1244, rich weekEntries push with set1/2/3 + rawName/courtRank ~1279, weekMeta population, Architecture comment ~529–544 update).
+- This D-009 entry + cross-ref in D-008.
+- PROJECT_CONTEXT.md (Section 2 data model example + notes, Section 4 iteration bullet, Section 9 debt items closed/updated).
+- LEAGUE_LOGIC_CONSIDERATIONS.md (existing §7 analytics now actionable).
+
+---
+
 ## Future Decision Template
 
 When a significant choice arises (new backend, stronger name system, tiebreaker rules, multi-device strategy, etc.), add the next numbered entry here using the template above. Then summarize the outcome in PROJECT_CONTEXT.md.
 
 **Next likely candidates (from current open questions):**
-- D-009: Complete remaining dead-code excision after D-008 cleanup + full weekGames population in adminCommitReviewedWeek
-- D-010: Stable Player IDs + merge UI for name identity
-- D-011: Physical Court tracking + movement history
-- D-012: Multi-device / Google Sheets sync strategy
+- D-010: Complete remaining dead-code excision (showSubmitPhotoModal + stale init refs) after D-008/D-009
+- D-011: Stable Player IDs + merge UI for name identity
+- D-012: Physical Court tracking + movement history
+- D-013: Multi-device / Google Sheets sync strategy
+- Stronger pre-commit validation (blocking or richer rules)
 
 ---
 
-*Maintained alongside the code for long-term project memory.*
+*Maintained alongside the code for long-term project memory. Last updated: 2026-05 (D-009 hardening + rich persistence).*

@@ -13,7 +13,7 @@ This `docs/` directory + root Markdown files form the complete, version-controll
    **The living single source of truth.** Current state, technical architecture, data model with code excerpts, key decisions with rationale & tradeoffs, iteration timeline summary, full artifact inventory (data/, score-sheets/, spreadsheets), detailed recoverability playbook, and open questions. Start here after the root README.
 
 3. **[DECISIONS.md](./DECISIONS.md)** (this folder)  
-   Structured, dated log of major architectural, process, and product decisions (lightweight ADR format). Easy to scan and extend.
+   Structured, dated log of major architectural, process, and product decisions (lightweight ADR format). Easy to scan and extend. D-009 (May 2026) records the validation, dedup hardening, and rich weekGames persistence work.
 
 4. **Root [LEAGUE_LOGIC_CONSIDERATIONS.md](../LEAGUE_LOGIC_CONSIDERATIONS.md)**  
    Historical deep-dive session notes (2026-05-25). Excellent zoomed-out thinking on league ops edge cases, name matching, court movement, data integrity, analytics, and explicit v1 recommendations. Kept in root as a dated artifact.
@@ -31,4 +31,4 @@ This `docs/` directory + root Markdown files form the complete, version-controll
 - New league night artifacts (photos, ground truth) → Add to `score-sheets/week-N/` with accompanying notes in the py scripts or a new entry in PROJECT_CONTEXT.
 - All docs are plain Markdown → fully searchable, diffable, and readable in any GitHub view or local editor.
 
-**Last updated:** 2026-05 (initial structured docs creation for recoverability).
+**Last updated:** 2026-05 (D-009 hardening + rich per-set persistence for analytics).
