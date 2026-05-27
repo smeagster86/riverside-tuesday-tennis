@@ -150,7 +150,7 @@
           <button onclick="handleSubmitScoresClick()"
                   class="flex items-center gap-x-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-5 py-2 rounded-3xl transition-colors shadow-sm">
             <i class="fa-brands fa-whatsapp"></i>
-            <span class="hidden sm:inline" id="submit-btn-text">Send scores via WhatsApp</span>
+            <span class="hidden sm:inline" id="submit-btn-text">Send Week 4 photos via WhatsApp</span>
           </button>
 
           <!-- Admin status -->
@@ -249,7 +249,7 @@
       <div>
         <div class="section-header flex items-center gap-x-3">
           <span>Current Standings</span>
-          <span class="text-xs px-2.5 py-1 rounded-2xl bg-emerald-100 text-emerald-700 font-mono font-medium">AFTER WEEK 3</span>
+          <span class="text-xs px-2.5 py-1 rounded-2xl bg-emerald-100 text-emerald-700 font-mono font-medium">AFTER WEEK 3 • No Week 4 yet</span>
         </div>
         <div class="text-sm text-slate-500">Click column headers to sort • Search to filter players</div>
       </div>
@@ -382,13 +382,17 @@
       </div>
       <h2 class="text-3xl font-semibold tracking-tight text-emerald-900">Upload &amp; Process Score Sheets</h2>
       <p class="text-slate-600 mt-1 max-w-2xl">Take photos of the paper sheets on your phone → upload here → review what the system reads → commit the week. Takes 2-3 minutes once you're used to it.</p>
+      <p class="text-xs text-emerald-700 mt-1">Note: You can also come back later and use this same tool to enter Week 1 and Week 2 from recovered sheets if you want full season stats.</p>
     </div>
 
     <!-- Step 1: Context -->
     <div class="bg-white border border-emerald-200 rounded-3xl p-6 mb-6 shadow-sm">
       <div class="flex items-center gap-x-3 mb-4">
         <div class="w-8 h-8 bg-emerald-600 text-white rounded-2xl flex items-center justify-center font-bold text-sm">1</div>
-        <div class="font-semibold text-lg">Quick context for this week (helps accuracy)</div>
+        <div>
+          <div class="font-semibold text-lg">Quick context for the night you're entering</div>
+          <div class="text-emerald-700 text-sm">This will be saved as <strong>Week 4</strong> (next week after the current standings)</div>
+        </div>
       </div>
       
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -454,7 +458,7 @@
       </div>
 
       <div class="px-6 py-4 bg-slate-50 border-t flex flex-col md:flex-row gap-3 justify-between items-center">
-        <div class="text-xs text-slate-500">Make sure Games Won and Court numbers look correct. You can change Courts freely.</div>
+        <div class="text-xs text-slate-500">This will be committed as <strong>Week 4</strong>. You can also use this tool later for Week 1 &amp; 2 from old sheets.</div>
         <button onclick="adminCommitReviewedWeek()" 
                 class="w-full md:w-auto px-8 py-3 bg-emerald-700 hover:bg-emerald-800 active:bg-black transition text-white font-bold rounded-3xl flex items-center justify-center gap-x-2 text-sm tracking-wide">
           <i class="fa-solid fa-check-circle"></i>
@@ -625,7 +629,7 @@
     function handleSubmitScoresClick() {
       if (!isAdminLoggedIn) {
         // Public users: just open WhatsApp to send photos
-        const msg = encodeURIComponent(`Hi, here are this week's score sheet photos (Week ${seasonData.currentWeek + 1})`);
+        const msg = encodeURIComponent(`Hi, here are the score sheet photos for Week ${seasonData.currentWeek + 1} (the night we just played)`);
         window.open(`https://wa.me/13063412227?text=${msg}`, '_blank');
         return;
       }
