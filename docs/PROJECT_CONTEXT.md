@@ -20,14 +20,15 @@ Single-file, phone-first web app for managing a competitive doubles tennis ladde
 - WhatsApp contact for organizer.
 
 **Admin / Organizer workflow (login: tennisadmin / riverside306!):**
+The single, recommended, clean path (as of the May 2026 cleanup):
 1. Context questions: # courts set up tonight + # players who actually played (sets N for points).
-2. Drop 3–4 WhatsApp photos of handwritten paper score sheets into large drop zone.
-3. Tesseract.js runs 100% client-side → produces editable review table (Court | Player | Sets/Games | Court Rank) with live **canonical name suggestions** from master list (fuzzy match).
+2. Drop 3–4 WhatsApp photos of handwritten paper score sheets into the large, obvious drop zone in the numbered Organizer portal (#tools section).
+3. Tesseract.js runs 100% client-side → produces editable review table (Court | Player | Sets/Games | Court Rank) with live **canonical name suggestions** from master list (fuzzy match via findBestMatch + MASTER_PLAYERS).
 4. Organizer corrects OCR errors by tap-edit; names auto-resolve to canonical where possible.
 5. Big green "LOOKS GOOD — CALCULATE POINTS & UPDATE STANDINGS" button.
 6. Global ranking by games won that night → assign N, N-1, ... 1 points. Updates standings instantly. Persisted to localStorage.
 
-Additional admin tools: legacy bulk entry, full data export ("Download full site" button produces self-contained snapshot), clear/reset.
+The legacy bulk-paste / manual entry UI and the old duplicate modal commit path were removed in the May 2026 cleanup pass (see D-008 and Architecture notes in index.html). The clean 3-step photo workflow in the main admin portal is now the *only* supported organizer experience.
 
 All processing (OCR, name matching, points, rendering) is client-side for privacy and zero hosting complexity.
 
@@ -68,11 +69,11 @@ All processing (OCR, name matching, points, rendering) is client-side for privac
 }
 ```
 
-**Key design points captured in code (index.html lines ~648-780, ~1131+):**
+**Key design points captured in code (index.html lines ~648-780, ~1131+, and the clean admin path ~1490+):**
 - `getPlayerTotal` / `getAdjustedTotal`: simple sum + drop lowest 2 weeks.
 - `computeCurrentStandings`: filters to players with at least one positive score (eliminates sign-up list noise).
 - Recent Form pips: for each of last 3 weeks, color intensity = (player gamesWon that week) / (max gamesWon that week) × 100%. This normalizes for wildly different N (28 vs 42).
-- Points calculation (`calculatePointsFromGames`): sort all players who played by gamesWon desc → assign N down to 1 (global, not per-court). Ties broken by name for stability.
+- Points calculation (global sort by gamesWon in adminCommitReviewedWeek): sort all players who played by gamesWon desc → assign N down to 1 (global, not per-court). Ties broken by name for stability.
 - Name handling: `normalizeName()` + `findBestMatch()` (simple contains + starts-with after lowercasing/punct stripping). Used in review table (live suggestions) and on commit (canonical resolution). Master list (`MASTER_PLAYERS`) extracted from RiversideMasterTracker.xlsx (see Artifacts).
 - Court grouping: inferred during OCR review from context + editable; stored per entry for future use.
 
@@ -81,6 +82,8 @@ All processing (OCR, name matching, points, rendering) is client-side for privac
 ### Why Certain Things Are Stored
 - Both raw `weekGames` *and* derived `points[]`: allows organizer to correct a past week and re-compute standings without losing history.
 - `n` per week in meta: required for correct point scaling and Recent Form normalization.
+
+**Post-cleanup implementation note:** The primary live path (`initAdminPhotoWorkflow`, `renderAdminReviewTable`, `adminCommitReviewedWeek`) lives in the clean numbered portal. The Architecture notes comment block (top of <script>, added during cleanup) is the quickest on-code reference.
 
 ---
 
@@ -95,7 +98,7 @@ Chose one self-contained HTML + CDNs over a proper app + backend or Google Sheet
 Photos arrive via WhatsApp on the organizer's phone. Running OCR locally (Tesseract.js) eliminates any server or third-party image processing. Review table is fully editable with live fuzzy suggestions. Tradeoff: OCR quality depends on photo clarity + current simple parsing (mixed numeric vs "6-2 6-3" notation handled in review step by human). Analysis scripts in score-sheets/ document the challenges discovered.
 
 **D-003: Global ranking by games won for N-point allocation (Accepted)**  
-League rule: everyone who played that night is ranked globally by total games won → top gets N points, next N-1, down to 1. Implemented exactly (see calculatePointsFromGames). Not per-court. Rationale: matches existing paper process and social movement (winners up). Court data is still captured for UI grouping and future analytics.
+League rule: everyone who played that night is ranked globally by total games won → top gets N points, next N-1, down to 1. Implemented exactly (see adminCommitReviewedWeek). Not per-court. Rationale: matches existing paper process and social movement (winners up). Court data is still captured for UI grouping and future analytics.
 
 **D-004: Simple fuzzy name canonicalization + manual override instead of full Player ID system (Accepted for v1)**  
 `MASTER_PLAYERS` array + `normalizeName`/`findBestMatch` in review UI (index.html:685+). Shows suggestions; commit forces canonical where possible. Rationale: real-world OCR/handwriting produces "Chr1s", "Dewayne E." vs "Dwayne", nicknames. Full ID + merge UI would be heavier for a solo phone tool right now. Documented as high-priority future item in LEAGUE_LOGIC_CONSIDERATIONS.md.
@@ -124,11 +127,12 @@ The git history itself is an excellent record (descriptive commit messages). Key
 - **Name recognition & standings hardening (553cbc6):** Added MASTER_PLAYERS, fuzzy matching in admin review, canonical resolution on commit, filter to actual players only. Directly addressed spelling drift and sign-up vs played distinction.
 - **Logic considerations doc (01c53e1):** Added LEAGUE_LOGIC_CONSIDERATIONS.md after zoomed-out review of missing edge cases (name identity, court movement, versioning, tiebreakers, backup strategy, partner analytics).
 - **Major UX overhaul (66994dc):** 4-step numbered admin portal (Context → Upload → Review nice table → Commit). Big obvious drop zone, clean grouped review table modeled after target format, prominent commit button.
-- **Centralize for recoverability (local e882aa0, not yet fully reflected on remote at time of writing):** Added all raw photos, RiversideMasterTracker.xlsx, analysis scripts + spreadsheets, data/ JSON seeds, players-initial.json, updated .gitignore and major README rewrite focused on "clone anywhere and have everything."
+- **May 2026 cleanup pass (working copy edits reflected in subsequent remote index.html fix):** Removed large block of dead legacy code — the entire old bulk-paste/manual entry system (applyBulkPaste, addPlayerToWeekEntry, renderWeekEntryList, calculatePointsFromGames, previewNewStandings, commitWeekToStandings + all related DOM lookups for non-existent elements), the duplicate old commit path `commitReviewedWeek`, and `initScoreEntry()` + its call in initEverything. Added clear "Architecture notes" comment block at the top of the <script> section explaining the current clean state, what was cleaned, the intended single primary admin photo workflow (the numbered Organizer portal), and a pointer to the docs/ folder. Goal: reduce hodgepodge and make the single-file app more cohesive and robust while keeping all real functionality intact. See D-008 for full ADR.
+- **Centralize for recoverability (e882aa0 + docs commits 202a778 / 5fea1c2):** Added structured docs/ folder (PROJECT_CONTEXT, DECISIONS, INDEX), updated README, full artifact emphasis. The cleanup and docs work together to make the project trivially understandable on a fresh clone.
 
-**Lesson from iterations:** The biggest value came from repeatedly asking "what would future me need if this machine is gone tomorrow?" and then adding the raw artifacts + explanatory docs.
+**Lesson from iterations:** The biggest value came from repeatedly asking "what would future me need if this machine is gone tomorrow?" and then adding the raw artifacts + explanatory docs + (in this pass) cleaning up the code itself.
 
-Remote tip at time of initial docs creation: 67b9b16a (and nearby). Local working clone contains additional commits with the full artifact payload.
+Remote tip at time of initial docs creation: 67b9b16a (and nearby). Local working clone + recent remote fixes contain the post-cleanup state.
 
 ---
 
@@ -156,15 +160,15 @@ Remote tip at time of initial docs creation: 67b9b16a (and nearby). Local workin
 
 **Goal:**  `git clone https://github.com/smeagster86/riverside-tuesday-tennis.git`  → open `index.html` in browser  → full working app + full historical context + raw source material.
 
-**Current 30-second steps (as of docs creation):**
+**Current 30-second steps (as of docs creation + cleanup):**
 1. Clone the repo.
-2. Open `index.html` (Week 3 data is preloaded; admin tools work immediately).
-3. Read root README + this file + LEAGUE_LOGIC_CONSIDERATIONS.md.
+2. Open `index.html` (Week 3 data is preloaded; the clean admin photo workflow in the Organizer portal works immediately after admin login).
+3. Read root README + this file + LEAGUE_LOGIC_CONSIDERATIONS.md + the Architecture notes comment inside index.html.
 4. For full Week 3 re-analysis: open the score-sheets/ files in Excel or run the .py scripts.
 
-**Known Current Gap (Critical):** At the time these docs were added, the full `score-sheets/week-3/` (JPEG photos, xlsx files) and `data/` + `players-initial.json` exist in the local clone's commit history (see local chore commit e882aa0) but have **not yet been pushed to the GitHub remote**. The remote tip only contains the code + the two main MD files. The README describes the artifacts as present for recoverability, but they are not yet on GH.
+**Known Current Gap (Critical):** At the time these docs were added, the full `score-sheets/week-3/` (JPEG photos, xlsx files) and `data/` + `players-initial.json` exist in the local clone's commit history (see local chore commit e882aa0) but have **not yet been pushed to the GitHub remote** in some snapshots. The remote tip contains code + docs/. The README describes the artifacts as present for recoverability. Resolution via Git LFS is still recommended (see earlier commits).
 
-**Resolution path (do this soon):**
+**Resolution path (do this soon):** 
 - Install Git LFS: `git lfs install`
 - Track the asset paths: `git lfs track "score-sheets/**" "data/**" "*.xlsx" "*.jpeg" "*.png"`
 - Commit the .gitattributes, then push the asset-containing commits (or cherry-pick / rebase as needed).
@@ -177,7 +181,7 @@ Remote tip at time of initial docs creation: 67b9b16a (and nearby). Local workin
 
 **Multi-machine / phone → laptop handoff:** Currently manual (export JSON or full HTML snapshot, load on other device). Future work tracked in Open Questions.
 
-**If everything is lost except this repo:** The combination of photos + ground-truth py + master xlsx + the logic in index.html + this document lets you rebuild the entire standings and the admin tool from scratch.
+**If everything is lost except this repo:** The combination of photos + ground-truth py + master xlsx + the logic in index.html + this document + the Architecture notes lets you rebuild the entire standings and the admin tool from scratch.
 
 ---
 
@@ -226,4 +230,30 @@ When in doubt while working: ask "Will future me on a different computer in 3 mo
 
 ---
 
-*Generated as part of recoverability hardening — May 2026.*
+## 9. Post-May-2026-Cleanup State & Remaining Technical Debt
+
+The May 2026 cleanup (D-008) successfully removed the bulk of the legacy hodgepodge. The code + docs now present a clear, cohesive picture:
+- The *only* supported admin path is the numbered photo workflow in the Organizer portal (detailed in section 1 and the Architecture notes comment in index.html).
+- All real functionality is preserved and the single-file app is easier to understand.
+
+However, the following items were noted during review of the current state (local working tree + GitHub main) but not fully excised or corrected in the initial cleanup pass. They are low-risk to current operation (Week 3 preloads + new photo commits produce correct public standings) but should be addressed for full alignment with the documented architecture and data model:
+
+1. **Dead legacy modal code still present:** The entire `showSubmitPhotoModal()` function (~200 lines, lines ~1120–1390 range) including its duplicate OCR wiring, review list, and an internal `applyBtn.onclick` calling the removed `commitReviewedWeek`. The helper `parseScoreSheetText` is used only by this dead path. Never invoked (handleSubmitScoresClick now correctly scrolls to #tools for admins), but bloats the file.
+
+2. **Broken / stale references in active code:**
+   - `initEverything()` contains direct `document.getElementById('entry-week-num').value` and `getElementById('entry-week-label')` (elements do not exist in the current clean admin HTML). These will throw if execution reaches them.
+   - `window.RIVERSIDE_LEAGUE` global export references `commitWeekToStandings` (undefined since removal of legacy commit paths).
+
+3. **Incomplete implementation of rich data model in the primary commit path:** `adminCommitReviewedWeek` correctly computes and stores `points[]` using the league rules and canonical names, updates currentWeek, and triggers re-renders. However, it does **not** write entries to `seasonData.weekGames[weekNum]` (array of {name, gamesWon, court}) or append a `{num, date, n}` object to `weekMeta`. Only `preloadWeek3Data` (for the initial Week 3 seed) populates these structures. This means the "raw source of truth" described in section 2 and earlier decisions is aspirational for weeks committed after Week 3. Future analytics (partner performance, re-computation) will require this data.
+
+4. **Minor drift between Architecture notes and live commit function:** The comment accurately describes intent and the clean UI; the implementation of the commit step is leaner than the removed legacy paths but omits the weekGames persistence that the comment and data model section still reference.
+
+5. **Pre-existing (unchanged by cleanup):** Device-local localStorage only; asset recoverability on GitHub still benefits from Git LFS for score-sheets/ and data/ binaries (recommended in section 6).
+
+**Recommended next action:** A short dedicated follow-up cleanup + hardening pass (tracked as D-009) to delete the dead modal block, repair the init references, and extend `adminCommitReviewedWeek` (and any future week commit helpers) to also persist the full weekGames + weekMeta records using the data already present in the review table (`currentReviewData` or equivalent). This will make the live app match the documented rich data model exactly.
+
+These notes ensure that anyone cloning the repo after the cleanup immediately sees both the improved state *and* the precise remaining items, without having to discover them by reading code.
+
+---
+
+*Generated as part of recoverability hardening — May 2026. Updated with cleanup details post D-008.*

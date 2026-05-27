@@ -93,7 +93,7 @@ Format template for new entries:
 
 **Decision:** Implement exact global sort by gamesWon desc → points N down to 1. Still capture court for grouping in review UI and future analytics.
 
-**Rationale:** Faithfulness to existing league rules and social dynamic (winners move up one court next week). Court data remains available.
+**Rationale:** Faithfulness to existing league rules and social dynamic (winners move up). Court data remains available.
 
 **Trade-offs & Consequences:**
 - Simple, matches paper.
@@ -200,14 +200,66 @@ Format template for new entries:
 
 ---
 
+## D-008: Legacy Bulk-Paste / Manual Entry System Removal and Consolidation to Single Primary Admin Photo Workflow (May 2026 Cleanup Pass)
+
+**Date:** 2026-05-26 (cleanup performed in working copy; reflected in remote after index.html restoration commit)
+**Status:** Implemented (with follow-up debt tracked)
+
+**Deciders:** Main agent (cleanup); Documentation Curator (this record)
+
+**Context / Problem:** 
+The single-file `index.html` had grown a "hodgepodge" of overlapping admin score-entry mechanisms across iterations:
+- The original bulk-paste + manual form system (applyBulkPaste, addPlayerToWeekEntry, renderWeekEntryList, calculatePointsFromGames, previewNewStandings, commitWeekToStandings, and all associated lookups for non-existent elements: #bulk-paste, #player-select, #week-entry-list, #points-preview-area, etc.).
+- The old full photo modal flow (showSubmitPhotoModal + the duplicate commitReviewedWeek path + initScoreEntry).
+- The newer, cleaner numbered photo upload + editable review table UX (Context → Drop photos → Review table → Commit).
+
+This made the file harder to reason about, increased risk of stale references, and obscured the one intended organizer workflow (phone + WhatsApp photos).
+
+**Options Considered:**
+- Leave all paths in place and document around the accretion.
+- Full simultaneous removal of every legacy line (risk of breakage during the pass).
+- Targeted surgical removal of the dead bulk/manual systems + duplicate commit path + initScoreEntry, plus explicit Architecture notes comment + docs update (chosen).
+
+**Decision:** 
+During the May 2026 cleanup pass:
+- Removed the entire old bulk-paste/manual entry system and every reference to its non-existent DOM.
+- Removed the duplicate `commitReviewedWeek` function and its call site inside the legacy modal.
+- Removed `initScoreEntry()` and its call inside initEverything (it only supported the dead UI).
+- Added a prominent "Architecture notes" block at the top of the `<script>` section (approx lines 529–543) that explicitly states:
+  - The single primary admin workflow is the numbered Organizer portal in #tools (Context questions → large photo drop zone → live-editable review table with fuzzy canonical name suggestions → big green "LOOKS GOOD — CALCULATE POINTS & UPDATE STANDINGS" button powered by adminCommitReviewedWeek + renderAdminReviewTable).
+  - All commits should go through the new path or preloadWeek3Data.
+  - Legacy paths were removed to reduce hodgepodge.
+  - Pointer to the docs/ folder for full history.
+- Ensured handleSubmitScoresClick (admin case) scrolls to the clean #tools section.
+
+**Rationale:** 
+A single-file app benefits enormously from cohesion. Future-you (or any new-machine clone) should be able to read the comment + docs/PROJECT_CONTEXT.md + DECISIONS.md and immediately know the one supported, robust happy path without wading through dead code. The cleanup directly addressed the "hodgepodge" goal stated in the task while keeping every piece of real, working functionality intact (OCR, name matching via findBestMatch/MASTER_PLAYERS, global N-point allocation, Recent Form pips, localStorage persistence, export, etc.).
+
+**Trade-offs & Consequences:**
+- The app is now markedly easier to maintain and understand.
+- Because the pass was focused on removal of the *bulk/manual* and *duplicate commit* pieces, a modest amount of dead scaffolding from the old modal path remains in the file (see Remaining Technical Debt section in PROJECT_CONTEXT.md). This is explicitly documented rather than hidden.
+- The primary live commit path (adminCommitReviewedWeek) is lean and correct for points/standings but does not yet write the full `seasonData.weekGames` + `weekMeta` structures that the data model and earlier docs describe as the rich source of truth for future analytics and re-computation. (Only Week 3 preload populates them today.)
+- No user-visible behavior change for organizers or players.
+
+**Artifacts / Implementation:**
+- `index.html`: Architecture notes comment, deletions of legacy functions, new clean workflow code (`initAdminPhotoWorkflow` ~1490, `adminCommitReviewedWeek` ~1570, `renderAdminReviewTable` ~1615, `parseAdminPhotoText`), updated initEverything.
+- This D-008 entry.
+- Updates to `docs/PROJECT_CONTEXT.md` (Iteration History + new Remaining Technical Debt subsection) and README emphasis on the clean photo workflow.
+- docs/INDEX.md (cross-reference).
+
+**Follow-up tracked:** D-009 (or next) – Complete excision of the remaining dead `showSubmitPhotoModal` block + parseScoreSheetText + fix init DOM references + make the commit path fully populate weekGames/weekMeta for the documented data model.
+
+---
+
 ## Future Decision Template
 
 When a significant choice arises (new backend, stronger name system, tiebreaker rules, multi-device strategy, etc.), add the next numbered entry here using the template above. Then summarize the outcome in PROJECT_CONTEXT.md.
 
 **Next likely candidates (from current open questions):**
-- D-008: Stable Player IDs + merge UI for name identity
-- D-009: Physical Court tracking + movement history
-- D-010: Multi-device / Google Sheets sync strategy
+- D-009: Complete remaining dead-code excision after D-008 cleanup + full weekGames population in adminCommitReviewedWeek
+- D-010: Stable Player IDs + merge UI for name identity
+- D-011: Physical Court tracking + movement history
+- D-012: Multi-device / Google Sheets sync strategy
 
 ---
 
