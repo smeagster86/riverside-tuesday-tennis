@@ -1,1 +1,1460 @@
-[THE COMPLETE FULL PATCHED INDEX.HTML CONTENT - 61KB+ with all good code from the last known-good version at SHA 2e7c9260... plus the new 'Review & Correct Past Weeks' admin section in the #tools div, the new JS functions (loadWeekForEditing, renderWeekEditorTable modeled on the existing review table with live canonical suggestions, saveWeekEditsAndReallocate that computes effectiveN = n + additionalUnscored, re-sorts, re-assigns points only for that week slice, updates weekGames and the correct index in players.points[], re-renders all public views, persists; deleteOrVoidWeek with strong confirmation and backup nudge; rebuildAllFromWeekGames nuclear option; photo upload hardening using proper <label> + explicit button + robust re-init after login; minor updates to computeCurrentStandings/getAdjustedTotal/Recent Form etc to skip voided weeks; updated Architecture notes comment at top of script describing the new management path]. The full string is the concatenation of the last good fetched chunks with the designed patches inserted at the correct locations (after the photo workflow card for the HTML, and the new functions added in the script block before the closing </script>).
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riverside Tuesday Night Doubles • 2026</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+    :root { --emerald: #10b981; }
+    body { font-family: 'Inter', system_ui, sans-serif; }
+    .font-display { font-family: 'Space Grotesk', 'Inter', sans-serif; }
+    .standings-row:hover { background-color: #f8fafc; }
+    .court-badge { font-size: 10px; padding: 1px 6px; border-radius: 9999px; }
+    .pip { width: 9px; height: 9px; border-radius: 9999px; display: inline-block; margin: 0 1px; }
+    .admin-card { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05); }
+    .score-table th, .score-table td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
+    .score-table input { background: transparent; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 6px; font-size: 13px; }
+    .nav-active { border-bottom: 3px solid #10b981; font-weight: 600; }
+    .metric { font-variant-numeric: tabular-nums; }
+    .leaguelogo { background: linear-gradient(135deg, #10b981, #059669); }
+    .ocr-preview { max-height: 180px; object-fit: contain; border: 1px solid #e2e8f0; border-radius: 8px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <!-- Top Nav -->
+  <nav class="bg-white border-b sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center gap-3">
+          <div class="leaguelogo w-9 h-9 rounded-2xl flex items-center justify-center text-white shadow-inner">
+            <i class="fa-solid fa-tachometer-alt text-xl"></i>
+          </div>
+          <div>
+            <div class="font-display text-2xl font-semibold tracking-tighter">Riverside Tuesday</div>
+            <div class="text-[10px] text-emerald-600 -mt-1 font-medium">DOUBLES • 2026</div>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-2 text-sm">
+          <div onclick="showTab('standings')" class="cursor-pointer px-4 py-1.5 rounded-full hover:bg-slate-100 flex items-center gap-2 tab-link" id="tab-standings">
+            <i class="fa-solid fa-trophy w-4"></i> <span class="hidden sm:inline">Standings</span>
+          </div>
+          <div onclick="showTab('history')" class="cursor-pointer px-4 py-1.5 rounded-full hover:bg-slate-100 flex items-center gap-2 tab-link" id="tab-history">
+            <i class="fa-solid fa-history w-4"></i> <span class="hidden sm:inline">History</span>
+          </div>
+          <div onclick="showAdminGate()" class="cursor-pointer px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full flex items-center gap-2 text-sm font-medium shadow-sm">
+            <i class="fa-solid fa-lock w-3.5"></i> <span>Admin</span>
+          </div>
+          <div class="text-xs text-slate-400 pl-2 hidden md:block">Riverside Badminton &amp; Tennis Club</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- PUBLIC STANDINGS TAB -->
+    <div id="view-standings">
+      <div class="flex items-end justify-between mb-4">
+        <div>
+          <div class="uppercase tracking-[1.5px] text-emerald-600 text-xs font-semibold">Season 2026 • After Week 3</div>
+          <h1 class="font-display text-4xl font-semibold tracking-tighter">Current Standings</h1>
+        </div>
+        <div class="text-right text-xs text-slate-500">
+          49 players • 7 courts typical<br>
+          <span class="font-medium text-emerald-700">Drop 2 lowest weeks</span> for final total
+        </div>
+      </div>
+
+      <!-- Quick stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div class="bg-white rounded-3xl p-4 border">
+          <div class="text-xs text-slate-500">THIS WEEK (W3)</div>
+          <div class="text-3xl font-semibold tabular-nums mt-1">28 <span class="text-base font-normal text-slate-400">players</span></div>
+          <div class="text-emerald-600 text-sm">N = 28 • Points 28 → 1</div>
+        </div>
+        <div class="bg-white rounded-3xl p-4 border">
+          <div class="text-xs text-slate-500">TOP PLAYER</div>
+          <div class="text-3xl font-semibold mt-1">Chris K.</div>
+          <div class="text-sm">90 total • 3 weeks played</div>
+        </div>
+        <div class="bg-white rounded-3xl p-4 border">
+          <div class="text-xs text-slate-500">WEEKS PLAYED</div>
+          <div class="text-3xl font-semibold mt-1">3 <span class="text-base font-normal text-slate-400">/ 22</span></div>
+          <div class="text-xs">Season runs May – September</div>
+        </div>
+        <div class="bg-white rounded-3xl p-4 border flex items-center">
+          <div>
+            <div class="text-xs text-slate-500">NEXT LEAGUE NIGHT</div>
+            <div class="font-semibold">Tuesday 7:00pm</div>
+            <div class="text-emerald-700 text-xs font-medium">Send photos to Adrian via WhatsApp</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Standings Table -->
+      <div class="bg-white rounded-3xl border overflow-hidden shadow-sm">
+        <div class="p-3 border-b bg-slate-50 flex items-center justify-between">
+          <input id="search-input" type="text" placeholder="Search players..." 
+                 class="px-4 py-2 text-sm border rounded-2xl w-64 focus:outline-none focus:border-emerald-400" onkeyup="filterStandings()">
+          <div class="text-xs text-slate-500 pr-2">Click column headers to sort • Only players with scores shown</div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm" id="standings-table">
+            <thead class="bg-slate-100 text-slate-600">
+              <tr>
+                <th class="px-3 py-3 text-left w-8 cursor-pointer" onclick="sortStandings(0)">#</th>
+                <th class="px-3 py-3 text-left cursor-pointer" onclick="sortStandings(1)">Player</th>
+                <th class="px-3 py-3 text-center w-14 cursor-pointer" onclick="sortStandings(2)">W1</th>
+                <th class="px-3 py-3 text-center w-14 cursor-pointer" onclick="sortStandings(3)">W2</th>
+                <th class="px-3 py-3 text-center w-14 cursor-pointer" onclick="sortStandings(4)">W3</th>
+                <th class="px-3 py-3 text-center w-16 cursor-pointer bg-emerald-50" onclick="sortStandings(5)">Total</th>
+                <th class="px-3 py-3 text-center w-20 cursor-pointer" onclick="sortStandings(6)">Adj. Total</th>
+                <th class="px-3 py-3 text-center w-16 cursor-pointer" onclick="sortStandings(7)">Weeks</th>
+                <th class="px-3 py-3 text-center w-28">Recent Form</th>
+              </tr>
+            </thead>
+            <tbody id="standings-body" class="divide-y"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="text-[10px] text-slate-400 mt-2 px-1">Adjusted Total = sum of all weeks minus the two lowest (or all if ≤2 weeks). Recent Form = normalized last 3 weeks (best = 4 pips).</div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div id="view-history" class="hidden">
+      <h2 class="font-display text-3xl font-semibold tracking-tighter mb-4">Week History</h2>
+      <div id="history-list" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
+
+    <!-- ADMIN GATE MODAL -->
+    <div id="admin-gate-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[100]" onclick="if (event.target.id === 'admin-gate-modal') hideAdminGate()">
+      <div onclick="event.stopImmediatePropagation()" class="bg-white w-full max-w-md mx-4 rounded-3xl p-8 shadow-2xl">
+        <div class="text-center mb-6">
+          <i class="fa-solid fa-user-shield text-4xl text-emerald-600"></i>
+          <div class="font-display text-2xl font-semibold mt-3">Organizer Portal</div>
+          <div class="text-sm text-slate-500">Riverside Tuesday Doubles</div>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs uppercase tracking-widest text-slate-500 block mb-1">Username</label>
+            <input id="admin-user" type="text" value="tennisadmin" class="w-full border rounded-2xl px-4 py-2.5 text-lg focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="text-xs uppercase tracking-widest text-slate-500 block mb-1">Password</label>
+            <input id="admin-pass" type="password" placeholder="••••••••" class="w-full border rounded-2xl px-4 py-2.5 text-lg focus:outline-none focus:border-emerald-500" value="">
+          </div>
+          <button onclick="attemptAdminLogin()" class="w-full bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 transition text-white py-3 rounded-2xl font-semibold text-lg">Enter Admin Portal</button>
+        </div>
+        
+        <div class="mt-6 text-[11px] text-center text-amber-600 bg-amber-50 rounded-2xl py-2 px-3">
+          Client-side gate only. All data stays on this device. Export snapshots regularly for backup &amp; multi-device use.
+        </div>
+        <div class="text-center mt-3">
+          <button onclick="hideAdminGate()" class="text-xs text-slate-400 hover:text-slate-600">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN PORTAL (shown after login) -->
+    <div id="admin-portal" class="hidden mt-8">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <span class="px-3 py-1 bg-emerald-700 text-white text-xs tracking-wider font-semibold rounded-full">ADMIN MODE</span>
+          <span class="font-semibold text-xl">Organizer Tools</span>
+        </div>
+        <button onclick="logoutAdmin()" class="text-xs px-3 py-1.5 rounded-full border hover:bg-white">Exit Admin</button>
+      </div>
+
+      <!-- Snapshot safety bar -->
+      <div class="mb-4 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-3xl px-4 py-2 flex items-center gap-2">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span class="font-medium">Safety first:</span> 
+        <button onclick="downloadFullSnapshot()" class="underline font-medium">Download full JSON snapshot</button> 
+        before any edits. Use Restore on any device to sync.
+      </div>
+
+      <!-- NEW WEEK / PHOTO WORKFLOW -->
+      <div class="bg-white rounded-3xl border p-6 mb-6 admin-card">
+        <div class="font-semibold text-lg mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-camera text-emerald-600"></i> 
+          <span>New Week — Photo to Spreadsheet</span>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div>
+            <label class="text-xs font-medium text-slate-500">Week Number</label>
+            <input id="new-week-num" type="number" value="4" class="w-full border rounded-2xl px-3 py-2 text-lg font-semibold">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-500">Week Date (optional)</label>
+            <input id="new-week-date" type="date" class="w-full border rounded-2xl px-3 py-2 text-sm">
+            <div class="text-[10px] text-slate-400 mt-0.5">For Google Sheets WeeklyRaw</div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-500">Unscored players (missing courts)</label>
+            <input id="new-unscored" type="number" value="0" class="w-full border rounded-2xl px-3 py-2 text-lg font-semibold">
+            <div class="text-[10px] text-slate-400 mt-0.5">Simplest: enter 4 for one full court absent. Used for effective N + GS meta export.</div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-500">Declared total attending (optional)</label>
+            <input id="new-declared-n" type="number" placeholder="auto" class="w-full border rounded-2xl px-3 py-2">
+          </div>
+        </div>
+
+        <!-- Robust Photo Upload for iPhone + Desktop -->
+        <div class="border-2 border-dashed border-emerald-300 hover:border-emerald-400 rounded-3xl p-6 text-center bg-emerald-50/40 transition" id="drop-zone">
+          <i class="fa-solid fa-images text-3xl text-emerald-600 mb-2"></i>
+          <div class="font-semibold">Drop score sheet photos here (or click)</div>
+          <div class="text-xs text-slate-500 mt-0.5">Works great on iPhone camera • multiple files OK • paper or Excel screenshots</div>
+          
+          <div class="flex flex-wrap gap-2 justify-center mt-4">
+            <label class="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-emerald-50 border rounded-2xl text-sm font-medium shadow-sm">
+              <i class="fa-solid fa-camera"></i>
+              <span>Take Photo (iPhone Camera)</span>
+              <input type="file" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoFiles(this.files)" id="camera-input">
+            </label>
+            <label class="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-emerald-50 border rounded-2xl text-sm font-medium shadow-sm">
+              <i class="fa-solid fa-folder-open"></i>
+              <span>Upload from Library / Files</span>
+              <input type="file" accept="image/*" multiple class="hidden" onchange="handlePhotoFiles(this.files)" id="file-input">
+            </label>
+          </div>
+          <div class="text-[10px] text-emerald-700 mt-3">Tip: For best OCR results, good lighting + straight photos. Or use your phone's built-in text scanner and paste below.</div>
+        </div>
+
+        <!-- Quick Paste Mode (Zero-friction for Google Sheets + phone OCR) -->
+        <div class="mt-3 p-4 bg-emerald-50/60 border border-emerald-200 rounded-3xl">
+          <div class="flex items-center gap-2 mb-1">
+            <div class="text-xs uppercase font-semibold text-emerald-700">⚡ QUICK PASTE MODE — Perfect for Google Sheets WeeklyRaw</div>
+          </div>
+          <div class="text-[11px] text-slate-600 mb-2">Paste ANY simple table here: phone OCR text (Google Lens / Live Text), Excel copy, or even "Name 17" lines. One player per line. Tab / comma / space OK. Then parse → review → one-click perfect TSV for your "WeeklyRaw" tab (no reformatting needed).</div>
+          <textarea id="ocr-paste" rows="3" placeholder="Adrian	5	6	6	17&#10;Chris K.	6	6	2	14&#10;... or just:&#10;Adrian 17&#10;Chris K. 14 (no sets needed)" class="w-full text-sm font-mono border rounded-2xl p-3 bg-white"></textarea>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <button onclick="parsePastedText()" class="text-xs px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-medium flex items-center gap-1"><i class="fa-solid fa-magic"></i> Parse into Review Table</button>
+            <button onclick="quickParseAndShowGSPreview()" class="text-xs px-3 py-1.5 bg-white border border-emerald-300 hover:bg-emerald-50 rounded-2xl font-medium flex items-center gap-1">Parse + Show GS-Ready TSV</button>
+          </div>
+          <div class="text-[10px] text-emerald-600 mt-1.5">Pro tip: After photo OCR or paste, use the new "Copy for Google Sheets" buttons below the review table. Zero reformatting for your master WeeklyRaw + WeekMeta sheets.</div>
+        </div>
+
+        <div id="ocr-status" class="hidden mt-3 text-sm text-emerald-700 font-medium"></div>
+        
+        <!-- Review Spreadsheet (the heart) -->
+        <div id="review-section" class="hidden mt-5">
+          <div class="flex justify-between items-center mb-2">
+            <div class="font-semibold">Review &amp; Edit — Live Spreadsheet</div>
+            <div class="flex gap-2">
+              <button onclick="exportWeekXLSX()" class="text-xs px-3 py-1.5 rounded-2xl border bg-white hover:bg-slate-50 flex items-center gap-1"><i class="fa-solid fa-file-excel"></i> Export .xlsx for review</button>
+              <label class="text-xs px-3 py-1.5 rounded-2xl border bg-white hover:bg-slate-50 flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-upload"></i> Import corrected .xlsx<input type="file" accept=".xlsx" class="hidden" onchange="importWeekXLSX(this)"></label>
+            </div>
+          </div>
+          
+          <div class="overflow-auto max-h-[380px] border rounded-2xl bg-white">
+            <table class="score-table w-full text-sm" id="review-table">
+              <thead class="sticky top-0 bg-white">
+                <tr class="text-slate-500 text-xs">
+                  <th class="w-12">Court</th>
+                  <th>Player (tap to edit)</th>
+                  <th class="w-16 text-center">Set 1</th>
+                  <th class="w-16 text-center">Set 2</th>
+                  <th class="w-16 text-center">Set 3</th>
+                  <th class="w-20 text-center font-semibold text-emerald-700">Games Won</th>
+                  <th class="w-8"></th>
+                </tr>
+              </thead>
+              <tbody id="review-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- NEW: Google Sheets Zero-Friction Copy Tools (the core deliverable) -->
+          <div class="mt-3 p-3 bg-white border border-emerald-300 rounded-2xl">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <span class="font-semibold text-sm text-emerald-700">📋 Copy for Google Sheets — WeeklyRaw + WeekMeta (zero reformatting)</span>
+                <span class="text-[10px] text-slate-500 ml-2">Ideal format: 1 big WeeklyRaw table (Week col) + tiny WeekMeta for unscored/missing courts</span>
+              </div>
+              <button onclick="refreshGSPreview()" class="text-xs px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl">Refresh GS Preview</button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Scored rows -->
+              <div>
+                <div class="text-xs font-medium text-slate-600 mb-1">1. WeeklyRaw rows (paste under header in your AllWeeksRaw tab)</div>
+                <textarea id="gs-raw-tsv" rows="4" readonly class="w-full text-xs font-mono border rounded-xl p-2 bg-slate-50" placeholder="Click Refresh above after editing review table..."></textarea>
+                <button onclick="copyGSTSV('gs-raw-tsv', 'WeeklyRaw rows')" class="mt-1 text-xs px-3 py-1 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 flex items-center gap-1 w-full justify-center"><i class="fa-solid fa-copy"></i> COPY SCORED ROWS (TSV ready for paste)</button>
+              </div>
+              <!-- Meta row for unscored declaration -->
+              <div>
+                <div class="text-xs font-medium text-slate-600 mb-1">2. WeekMeta row (paste into WeekMeta tab — declares X unscored on missing courts)</div>
+                <textarea id="gs-meta-tsv" rows="2" readonly class="w-full text-xs font-mono border rounded-xl p-2 bg-slate-50" placeholder="Includes effective N + unscored declaration"></textarea>
+                <button onclick="copyGSTSV('gs-meta-tsv', 'WeekMeta row')" class="mt-1 text-xs px-3 py-1 bg-amber-600 text-white rounded-xl hover:bg-amber-700 flex items-center gap-1 w-full justify-center"><i class="fa-solid fa-copy"></i> COPY WEEK META (declares unscored/missing courts)</button>
+              </div>
+            </div>
+            <div class="mt-2 text-[10px] text-emerald-700 bg-emerald-50 p-2 rounded-xl">
+              <strong>Recommended Sheets layout:</strong> One "AllWeeksRaw" tab (append these rows for every week — has Week column). One small "WeekMeta" tab (1 row/week for N + unscored declaration). Super easy QUERY/FILTER later. 
+              <button onclick="showGSFormatHelp()" class="underline font-medium ml-1">Show exact column headers + example rows (normal + missing court)</button>
+            </div>
+          </div>
+          
+          <div class="flex flex-wrap gap-3 items-center mt-3">
+            <button onclick="addReviewRow()" class="text-xs px-3 py-1 bg-white border rounded-2xl flex items-center gap-1 hover:bg-emerald-50"><i class="fa-solid fa-plus"></i> Add row</button>
+            <button onclick="recomputeLivePreview()" class="text-xs px-4 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-2xl font-medium">Refresh Points Preview</button>
+            
+            <div class="flex-1"></div>
+            
+            <button onclick="processAndCommitWeek()" class="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-2xl text-sm shadow flex items-center gap-2">
+              <i class="fa-solid fa-check-double"></i> 
+              <span>LOOKS GOOD — CALCULATE POINTS &amp; UPDATE STANDINGS</span>
+            </button>
+          </div>
+          
+          <!-- Live Points Preview -->
+          <div id="points-preview" class="mt-4 bg-slate-900 text-emerald-300 rounded-2xl p-4 text-xs font-mono hidden"></div>
+        </div>
+      </div>
+
+      <!-- PAST WEEKS CORRECTION -->
+      <div class="bg-white rounded-3xl border p-6 admin-card">
+        <div class="font-semibold text-lg mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-edit text-amber-600"></i> 
+          <span>Review &amp; Correct Past Weeks</span>
+        </div>
+        <div class="text-xs text-slate-500 mb-3">Load any previous week, adjust scores or unscored count, re-allocate only that week, or rebuild everything. Full audit safety via snapshots.</div>
+        
+        <div id="past-weeks-list" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4 text-sm"></div>
+        
+        <div class="flex gap-2">
+          <button onclick="rebuildAllFromRawWeeks()" class="text-xs px-4 py-2 rounded-2xl border bg-white hover:bg-red-50 text-red-700 flex items-center gap-1">
+            <i class="fa-solid fa-sync"></i> Nuclear: Rebuild ALL standings from raw weeks
+          </button>
+          <button onclick="downloadFullSnapshot()" class="text-xs px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50">Download snapshot before editing</button>
+        </div>
+      </div>
+
+      <!-- Quick tools -->
+      <div class="flex flex-wrap gap-2 mt-4">
+        <button onclick="downloadFullSnapshot()" class="text-xs px-4 py-2 rounded-2xl bg-white border flex items-center gap-2 hover:bg-emerald-50"><i class="fa-solid fa-download"></i> Full JSON Snapshot</button>
+        <label class="text-xs px-4 py-2 rounded-2xl bg-white border flex items-center gap-2 cursor-pointer hover:bg-emerald-50"><i class="fa-solid fa-upload"></i> Restore from JSON<input type="file" accept=".json" class="hidden" onchange="restoreFromSnapshot(this)"></label>
+        <button onclick="exportMasterXLSX()" class="text-xs px-4 py-2 rounded-2xl bg-white border flex items-center gap-2 hover:bg-emerald-50"><i class="fa-solid fa-file-excel"></i> Export Updated Master Tracker .xlsx</button>
+        <button onclick="showGoogleSheetsSetup()" class="text-xs px-4 py-2 rounded-2xl bg-emerald-700 text-white flex items-center gap-2 hover:bg-emerald-800"><i class="fa-solid fa-table"></i> Google Sheets Setup + Migration (2 min)</button>
+        <button onclick="refreshFromSheets()" class="text-xs px-4 py-2 rounded-2xl bg-white border flex items-center gap-2 hover:bg-emerald-50"><i class="fa-solid fa-sync"></i> Refresh Live from Sheets</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="mt-10 text-center text-xs text-slate-400 pb-8">
+    Data stays on your device. <a href="#" onclick="showDocs()" class="underline">Curator logic &amp; history docs</a> • 
+    Made fresh Feb 2026 • <span onclick="window.location.reload()" class="cursor-pointer hover:text-slate-500">Reload</span>
+  </footer>
+
+<script>
+// ==================== FRESH CLEAN REBUILD - RIVERSIDE TENNIS LEAGUE ====================
+// Single-file, zero-dependency (CDNs), fully client-side, elegant & robust.
+// Preserves all league rules from LEAGUE_LOGIC_CONSIDERATIONS.md + curator discussions.
+// Photo upload hardened for iPhone. Spreadsheet review + .xlsx roundtrip. Unscored players support.
+// NEW: Zero-friction Google Sheets WeeklyRaw export (one big table + WeekMeta for unscored/missing courts).
+// Quick Paste mode + live GS TSV preview in review section. Perfect paste with no reformatting.
+// Past week correction + full rebuild. JSON snapshots for backup/multi-device.
+// + GOOGLE SHEETS INTEGRATION (v2): Master + Weekly Raw live in Sheets. Organizer edits almost exclusively on phone in Sheets.
+//   Site computes everything on-the-fly from Sheets (gviz, public read). One-tap "Copy for Paste" from review table.
+//   Near-zero friction. Fallback to embedded seeds if no Sheet ID configured.
+
+const TAILWIND = document.createElement('style'); // already via CDN
+let seasonData = { masterPlayers: [], players: [], weeks: [], currentWeek: 3 };
+let currentReviewData = []; // for the live review spreadsheet
+let isAdmin = false;
+let currentSortCol = 5, currentSortDir = 'desc';
+
+// ==================== GOOGLE SHEETS CONFIG (ORGANIZER: REPLACE WITH YOUR SHEET ID) ====================
+// 1. Create a new Google Sheet named "Riverside Tuesday Tennis 2026 - Live"
+// 2. Create exactly these 5 tabs (in order): Players | RawScores | WeekMeta | LegacyPoints | Config
+// 3. Share > "Anyone with the link can view" (no edit needed for public site; organizer edits with their account)
+// 4. Paste the "Migration Seed Blocks" (generated by button in Admin) into each tab at A1.
+// 5. Paste YOUR sheet ID below. The site will read live data. Cache: 10min client-side.
+const GS_CONFIG = {
+  spreadsheetId: '', // <-- PUT YOUR GOOGLE SHEET ID HERE e.g. '1aBcD3fG...xyz'
+  // Optional: Apps Script Web App URL for true one-tap append (see setup in Admin modal). Leave blank = copy/paste only (recommended for 2-min start).
+  appsScriptUrl: '',
+  appsScriptToken: 'riverside-2026', // simple shared secret (change in script too)
+  cacheMinutes: 10
+};
+
+let sheetsCache = { ts: 0, data: null }; // { players, rawScores, weekMeta, legacyPoints, config, masterList, aliasMap }
+let DYNAMIC_MASTER = [...MASTER_PLAYERS]; // populated from Sheets when available
+let ALIAS_MAP = {}; // canonName -> string[] of aliases (from Players.Aliases col)
+
+// ==================== SEED DATA (from RiversideMasterTracker.xlsx + ground truth) ====================
+const MASTER_PLAYERS = ["Chris K.","Adrian","Dan W.","Rob C","SJ","Ethan B","Ian F.","Aidan H.","Corey","Alden T.","Jonathan H.","Dewayne E.","Paul F.","Leigh S.","Marc T.","Landon","Zev","Manny","Mike D.","Pat V.","Chris H.","Dwayne","Ryan S.","Stephen","Kris L.","Rish","Darim","Dave Patola","Hongda Y.","Tim L.","Will M.","Ope A.","Pilar","Jaden P.","Stephen Li.","Mitch G.","Karim","Evangeline","Hamzat","Janice","Stephen L.","Andrea B.","Brian T.","Martin G.","Brody B.","Mehak","Jarred L.","Darren B.","Nancy"];
+
+const HISTORICAL_POINTS = {
+  "Chris K.": [21,42,27], "Adrian":[22,39,28], "Dan W.":[20,41,26], "Rob C":[19,37,25],
+  "SJ":[18,38,23], "Ethan B":[16,33,24], "Ian F.":[17,31,18], "Aidan H.":[14,29,19],
+  "Corey":[0,34,22], "Alden T.":[15,26,14], "Jonathan H.":[0,32,21], "Dewayne E.":[13,23,15],
+  "Paul F.":[0,28,17], "Leigh S.":[12,22,9], "Marc T.":[0,27,16], "Landon":[0,40,0],
+  "Zev":[10,17,12], "Manny":[0,24,13], "Mike D.":[0,36,0], "Pat V.":[0,35,0],
+  "Chris H.":[0,30,0], "Dwayne":[0,18,8], "Ryan S.":[0,25,0], "Stephen":[8,15,0],
+  "Kris L.":[11,8,3], "Rish":[0,21,0], "Darim":[0,20,0], "Dave Patola":[0,0,20],
+  "Hongda Y.":[0,19,0], "Tim L.":[7,12,0], "Will M.":[6,10,0], "Ope A.":[0,16,0],
+  "Pilar":[6,10,0], "Jaden P.":[0,9,6], "Stephen Li.":[0,14,0], "Mitch G.":[0,9,0],
+  "Karim":[0,0,13], "Evangeline":[0,0,0], "Hamzat":[0,0,13], "Janice":[0,0,15],
+  "Stephen L.":[0,0,11], "Andrea B.":[0,0,0], "Brian T.":[0,0,0], "Martin G.":[0,0,0],
+  "Brody B.":[0,0,20], "Mehak":[0,0,0], "Jarred L.":[0,0,0], "Darren B.":[0,0,0], "Nancy":[0,0,0]
+};
+
+// Week 3 ground truth raw (28 players, 7 courts, 4 per court) - from Week3_Tracker.xlsx
+const WEEK3_RAW = [{"court":1,"player":"Adrian","set1":5,"set2":6,"set3":6,"gamesWon":17},{"court":1,"player":"Chris K.","set1":6,"set2":6,"set3":2,"gamesWon":14},{"court":1,"player":"Dan W.","set1":6,"set2":0,"set3":6,"gamesWon":12},{"court":1,"player":"Rob C","set1":5,"set2":0,"set3":2,"gamesWon":7},{"court":2,"player":"Ethan B","set1":6,"set2":5,"set3":6,"gamesWon":17},{"court":2,"player":"SJ","set1":6,"set2":6,"set3":4,"gamesWon":16},{"court":2,"player":"Corey","set1":2,"set2":5,"set3":6,"gamesWon":13},{"court":2,"player":"Jonathan H.","set1":2,"set2":5,"set3":4,"gamesWon":11},{"court":3,"player":"Dave Patola","set1":6,"set2":6,"set3":6,"gamesWon":18},{"court":3,"player":"Aidan H.","set1":4,"set2":6,"set3":4,"gamesWon":14},{"court":3,"player":"Ian F.","set1":4,"set2":1,"set3":6,"gamesWon":11},{"court":3,"player":"Paul F.","set1":6,"set2":1,"set3":4,"gamesWon":11},{"court":4,"player":"Marc T.","set1":6,"set2":5,"set3":6,"gamesWon":17},{"court":4,"player":"Dewayne E.","set1":6,"set2":6,"set3":5,"gamesWon":17},{"court":4,"player":"Alden T.","set1":1,"set2":6,"set3":6,"gamesWon":13},{"court":4,"player":"Manny","set1":1,"set2":5,"set3":5,"gamesWon":11},{"court":5,"player":"Zev","set1":6,"set2":6,"set3":6,"gamesWon":18},{"court":5,"player":"Karim","set1":6,"set2":3,"set3":4,"gamesWon":13},{"court":5,"player":"Hamzat","set1":6,"set2":3,"set3":4,"gamesWon":13},{"court":5,"player":"Leigh S.","set1":3,"set2":3,"set3":6,"gamesWon":12},{"court":6,"player":"Dwayne","set1":6,"set2":6,"set3":6,"gamesWon":18},{"court":6,"player":"Stephen L.","set1":2,"set2":3,"set3":6,"gamesWon":11},{"court":6,"player":"Jaden P.","set1":6,"set2":3,"set3":1,"gamesWon":10},{"court":6,"player":"Mitch G.","set1":2,"set2":6,"set3":1,"gamesWon":9},{"court":7,"player":"Brody B.","set1":7,"set2":6,"set3":7,"gamesWon":20},{"court":7,"player":"Kris L.","set1":6,"set2":6,"set3":6,"gamesWon":18},{"court":7,"player":"Janice","set1":6,"set2":2,"set3":7,"gamesWon":15},{"court":7,"player":"Peter L.","set1":7,"set2":2,"set3":6,"gamesWon":15}];
+
+// ==================== GOOGLE SHEETS INTEGRATION HELPERS (PRIMARY ARCHITECTURE) ====================
+// See end of this script and Admin panel for full docs + 2-minute setup + exact tab structure + example rows.
+// Master player list + weekly raw scores live in Google Sheets. Website computes standings etc on the fly.
+// Organizer does almost everything in Google Sheets phone app. Site admin used mainly for photo OCR + pretty review.
+
+function parseGVizResponse(text) {
+  try {
+    const jsonStr = text.substring(text.indexOf('{')).replace(/\);?\s*$/, '');
+    return JSON.parse(jsonStr);
+  } catch (e) { console.error('GViz parse failed', e); return { table: { cols: [], rows: [] } }; }
+}
+
+async function fetchGoogleSheetTab(spreadsheetId, sheetName) {
+  if (!spreadsheetId) throw new Error('No spreadsheetId');
+  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  const parsed = parseGVizResponse(text);
+  const table = parsed.table || { cols: [], rows: [] };
+  const headers = (table.cols || []).map(c => (c.label || c.id || '').trim());
+  const rows = (table.rows || []).map(r => {
+    const obj = {};
+    (r.c || []).forEach((cell, i) => { if (cell != null) { const key = headers[i] || `col${i}`; obj[key] = (cell.f !== undefined ? cell.f : cell.v); } });
+    return obj;
+  }).filter(r => Object.keys(r).length);
+  return { headers, rows };
+}
+
+function buildAliasMap(playersRows) {
+  const map = {}; const master = [];
+  playersRows.forEach(r => {
+    const name = (r.Name || r.name || '').trim(); if (!name) return;
+    master.push(name);
+    const aliases = (r.Aliases || r.aliases || '').toString().split(/[;,|]/).map(a=>a.trim()).filter(Boolean);
+    if (aliases.length) map[name] = aliases;
+  });
+  return { masterList: master.length ? master : MASTER_PLAYERS, aliasMap: map };
+}
+
+async function loadFromGoogleSheets(force = false) {
+  const id = (GS_CONFIG.spreadsheetId || '').trim();
+  if (!id) return null;
+  const now = Date.now();
+  if (!force && sheetsCache.data && (now - sheetsCache.ts) < GS_CONFIG.cacheMinutes * 60000) return sheetsCache.data;
+  try {
+    const [pTab, rTab, mTab, lTab, cTab] = await Promise.all([
+      fetchGoogleSheetTab(id, 'Players'),
+      fetchGoogleSheetTab(id, 'RawScores'),
+      fetchGoogleSheetTab(id, 'WeekMeta'),
+      fetchGoogleSheetTab(id, 'LegacyPoints').catch(()=> ({rows:[]})),
+      fetchGoogleSheetTab(id, 'Config').catch(()=> ({rows:[]}))
+    ]);
+    const { masterList, aliasMap } = buildAliasMap(pTab.rows);
+    DYNAMIC_MASTER = masterList; ALIAS_MAP = aliasMap;
+
+    const weekMeta = {};
+    mTab.rows.forEach(r => {
+      const w = parseInt(r.Week || r.week); if (!w) return;
+      const scored = parseInt(r.ScoredPlayers || r['Scored Players'] || 0) || rTab.rows.filter(x=>parseInt(x.Week||x.week)===w).length;
+      const unsc = parseInt(r.UnscoredCount || r.Unscored || 0);
+      const eff = parseInt(r.EffectiveN || r['Effective N'] || 0);
+      weekMeta[w] = { week:w, date:r.Date||r.date||'', scored, unscored:unsc, effectiveN: eff||(scored+unsc), note:r.Note||r.note||'' };
+    });
+
+    const rawByWeek = {};
+    rTab.rows.forEach(r => {
+      const w = parseInt(r.Week || r.week); if (!w) return;
+      (rawByWeek[w] || (rawByWeek[w]=[])).push({
+        court: parseInt(r.Court||r.court||0), player:(r.Player||r.player||'').trim(),
+        rawName:(r.RawName||r['Raw Name']||r.player||'').trim(),
+        set1:parseInt(r.Set1||0), set2:parseInt(r.Set2||0), set3:parseInt(r.Set3||0),
+        gamesWon:parseInt(r.GamesWon||r['Games Won']||0)
+      });
+    });
+
+    const legacyPoints = {};
+    lTab.rows.forEach(r => {
+      const p = (r.Player||r.player||'').trim(), w=parseInt(r.Week||r.week), pts=parseInt(r.Points||r.points||0);
+      if (p && w) { if(!legacyPoints[p]) legacyPoints[p]={}; legacyPoints[p][w] = pts; }
+    });
+
+    const config = {}; cTab.rows.forEach(r => { const k=(r.Key||r.key||'').trim(); if(k) config[k]=(r.Value||r.value||'').toString(); });
+
+    const data = { playersTab:pTab.rows, rawScores:rTab.rows, weekMeta, rawByWeek, legacyPoints, config, masterList:DYNAMIC_MASTER, aliasMap:ALIAS_MAP, lastFetched:new Date().toISOString() };
+    sheetsCache = { ts: now, data };
+    return data;
+  } catch(e) { console.warn('[GS] load error (using seeds):', e.message); return null; }
+}
+
+function computeEffectiveNFromMeta(weekNum, fallbackLen=0, addUnscored=0, declared=null) {
+  if (sheetsCache.data && sheetsCache.data.weekMeta[weekNum]) {
+    const m = sheetsCache.data.weekMeta[weekNum];
+    return declared || m.effectiveN || (m.scored + (m.unscored||0));
+  }
+  return declared || (fallbackLen + (addUnscored||0));
+}
+
+function formatWeekAsTSVForRawScores(weekNum, reviewRows, dateStr='', source='photo-review') {
+  const h = 'Week\tCourt\tPlayer\tRawName\tSet1\tSet2\tSet3\tGamesWon\tDate\tSource';
+  const lines = reviewRows.map(r => {
+    const canon = r.name || findBestCanonical(r.rawName || r.name || '');
+    return [weekNum, r.court||'', canon, (r.rawName||r.name||''), r.set1||'', r.set2||'', r.set3||'', r.gamesWon||'', dateStr, source].join('\t');
+  });
+  return h + '\n' + lines.join('\n');
+}
+
+function exportMigrationSeedsForSheets() {
+  const known = {"Leigh S.":["Leah S.","Leah","Leigh","LS"], "Chris K.":["CK","Chris K","Chris K."], "Rob C":["Rob C.","Rob"], "Dave Patola":["David Patola","Dave","David"], "Ethan B":["Ethan B."]};
+  let p = 'Name\tActive\tAliases\tNotes\n'; MASTER_PLAYERS.forEach(n => { p += `${n}\tYes\t${(known[n]||[]).join(';')}\t\n`; });
+  p += 'Peter L.\tNo\t\tGuest W3 Court 7 only\n';
+
+  let r = 'Week\tCourt\tPlayer\tRawName\tSet1\tSet2\tSet3\tGamesWon\tDate\tSource\n';
+  WEEK3_RAW.forEach(e => { const rn = e.player==='Leigh S.'?'Leah S.':e.player; r += `3\t${e.court}\t${e.player}\t${rn}\t${e.set1}\t${e.set2}\t${e.set3}\t${e.gamesWon}\t2026-05-26\tseed\n`; });
+
+  let m = 'Week\tDate\tScoredPlayers\tUnscoredCount\tEffectiveN\tNote\n';
+  m += '1\t2026-05-05\t28\t0\t28\tNo raw. Legacy seeded.\n2\t2026-05-12\t42\t0\t42\tNo raw. Legacy seeded.\n3\t2026-05-26\t28\t0\t28\tRaw preserved. W3 historical=per-court bands; computed=global. See Config.\n';
+
+  let l = 'Player\tWeek\tPoints\n';
+  Object.entries(HISTORICAL_POINTS).forEach(([n,a])=>{ if(a[0])l+=`${n}\t1\t${a[0]}\n`; if(a[1])l+=`${n}\t2\t${a[1]}\n`; });
+
+  let c = 'Key\tValue\ndropLowestWeeks\t2\ntotalWeeks\t22\ncurrentWeek\t3\nhistoricalW3Note\tW3 historical used per-court (C1 top=28 ... C7=4-1). RawScores now allow global recompute for consistency.\nscoringDescription\tGlobal rank by gamesWon. N=effective (Scored+Unscored). Top gets N pts down to 1.\n';
+  return { Players: p, RawScores: r, WeekMeta: m, LegacyPoints: l, Config: c };
+}
+
+async function tryAppendWeekViaAppsScript(weekNum, rows, unscored, declared) {
+  if (!GS_CONFIG.appsScriptUrl) throw new Error('Configure appsScriptUrl first');
+  const payload = { secret: GS_CONFIG.appsScriptToken, week: weekNum, date: new Date().toISOString().slice(0,10), unscored:unscored||0, effectiveN: declared||(rows.length+(unscored||0)),
+    entries: rows.map(r => ({court:r.court, player:r.name||findBestCanonical(r.rawName||''), rawName:r.rawName||'', set1:r.set1||0, set2:r.set2||0, set3:r.set3||0, gamesWon:r.gamesWon||0 })) };
+  const res = await fetch(GS_CONFIG.appsScriptUrl, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+  return res.json();
+}
+
+// ==================== CORE LEAGUE LOGIC (from curator docs + ground truth) ====================
+function normalizeName(n) {
+  if (!n) return '';
+  return n.toLowerCase().replace(/[.\s]+/g, ' ').trim().replace(/\s+/g, ' ');
+}
+
+function findBestCanonical(input, masterList = DYNAMIC_MASTER, aliasMap = ALIAS_MAP) {
+  if (!input) return input;
+  const norm = normalizeName(input);
+  for (let m of masterList) if (normalizeName(m) === norm) return m;
+  for (const [canon, als] of Object.entries(aliasMap)) {
+    if (als.some(a => normalizeName(a) === norm)) return canon;
+  }
+  let best = null, bestScore = 0;
+  for (let m of masterList) {
+    const mn = normalizeName(m);
+    if (mn.includes(norm) || norm.includes(mn)) {
+      const sc = Math.min(mn.length, norm.length) / Math.max(mn.length, norm.length);
+      if (sc > bestScore) { bestScore = sc; best = m; }
+    }
+  }
+  return best || input;
+}
+
+// (Legacy duplicates removed — using the robust GS-aware versions defined earlier in the GS helpers block)
+
+function getAdjustedTotal(player) {
+  const pts = player.points || [];
+  if (pts.length <= 2) return pts.reduce((s, v) => s + (v || 0), 0);
+  const sorted = [...pts].sort((a,b)=>a-b);
+  return pts.reduce((s,v)=>s+v,0) - sorted[0] - sorted[1];
+}
+
+function getRecentFormPips(player, allWeeksData = []) {
+  const pts = player.points || [];
+  const recent = pts.slice(-3);
+  if (!recent.length) return '—';
+  const maxP = Math.max(...recent.filter(Boolean));
+  return recent.map(p => {
+    if (!p) return '<span class="pip bg-slate-200"></span>';
+    const level = Math.max(1, Math.min(4, Math.round((p / (maxP || 1)) * 4)));
+    return `<span class="pip ${level >= 3 ? 'bg-emerald-600' : level >= 2 ? 'bg-emerald-400' : 'bg-emerald-200'}></span>`;
+  }).join('');
+}
+
+function computeStandings() {
+  // If we have live Sheets data loaded, build from it (preferred). Else fall back to seasonData (local edits / snapshot).
+  if (sheetsCache.data) {
+    const fullPlayers = buildFullPlayerPoints(sheetsCache.data);
+    return fullPlayers
+      .filter(p => (p.points || []).some(x => x > 0))
+      .map(p => ({
+        ...p,
+        total: (p.points || []).reduce((s,v)=>s+(v||0),0),
+        adjusted: getAdjustedTotalFromPoints(p.points),
+        weeksPlayed: (p.points || []).filter(x => x > 0).length,
+        recent: getRecentFormPips(p)
+      }))
+      .sort((a,b) => b.adjusted - a.adjusted || b.total - b.total);
+  }
+  return seasonData.players
+    .filter(p => (p.points || []).some(x => x > 0))
+    .map(p => ({
+      ...p,
+      total: (p.points || []).reduce((s,v)=>s+(v||0),0),
+      adjusted: getAdjustedTotal(p),
+      weeksPlayed: (p.points || []).filter(x => x > 0).length,
+      recent: getRecentFormPips(p)
+    }))
+    .sort((a,b) => b.adjusted - a.adjusted || b.total - b.total);
+}
+
+// ==================== DATA & STORAGE (Sheets-first) ====================
+async function loadData(preferSheets = true) {
+  try {
+    if (preferSheets) {
+      const s = await loadFromGoogleSheets();
+      if (s) {
+        // We don't overwrite seasonData fully (keeps local admin edits possible), but render uses sheets when present.
+        // Seed a minimal seasonData for any legacy paths.
+        if (!seasonData.masterPlayers || seasonData.masterPlayers.length < 10) {
+          seasonData.masterPlayers = DYNAMIC_MASTER;
+          seasonData.players = DYNAMIC_MASTER.map(n => ({name: n, points: []}));
+        }
+        return;
+      }
+    }
+    const saved = localStorage.getItem('riversideTennis_v2');
+    if (saved) {
+      seasonData = JSON.parse(saved);
+      if (!seasonData.masterPlayers || seasonData.masterPlayers.length < 40) seasonData.masterPlayers = MASTER_PLAYERS;
+    } else {
+      seasonData = {
+        masterPlayers: MASTER_PLAYERS,
+        currentWeek: 3,
+        players: MASTER_PLAYERS.map(name => ({ name, points: HISTORICAL_POINTS[name] || [0,0,0] })),
+        weeks: [{ weekNum: 3, date: '2026-05-26', rawEntries: WEEK3_RAW.map((e,i) => ({...e, id: 'w3-'+i, rawName: e.player, name: e.player })), additionalUnscored: 0, declaredAttendingN: 28 }]
+      };
+      saveData();
+    }
+  } catch(e) { console.warn('load failed, using seed', e); }
+}
+
+async function refreshFromSheets() {
+  const s = await loadFromGoogleSheets(true);
+  if (s) {
+    alert(`Synced from Google Sheets! ${Object.keys(s.rawByWeek||{}).length} weeks with raw data. Standings will recompute live.`);
+  } else {
+    alert('Sheets sync failed (check Sheet ID + sharing "Anyone with link can view"). Using local data.');
+  }
+  renderAll();
+}
+
+function saveData() {
+  localStorage.setItem('riversideTennis_v2', JSON.stringify(seasonData));
+}
+
+function downloadFullSnapshot() {
+  const blob = new Blob([JSON.stringify(seasonData, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `riverside-snapshot-week${seasonData.currentWeek}-${Date.now()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  alert('Snapshot downloaded. Keep it safe — this is your full backup for any device.');
+}
+
+function restoreFromSnapshot(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.players || !data.masterPlayers) throw new Error('Invalid snapshot');
+      seasonData = data;
+      saveData();
+      renderAll();
+      alert('Snapshot restored successfully. All standings and history updated.');
+    } catch(err) { alert('Restore failed: ' + err.message); }
+  };
+  r.readAsText(file);
+  input.value = '';
+}
+
+// ==================== RENDER PUBLIC VIEWS ====================
+function renderStandings(filtered = null) {
+  const tbody = document.getElementById('standings-body');
+  const players = filtered || computeStandings();
+  
+  tbody.innerHTML = players.map((p, idx) => `
+    <tr class="standings-row cursor-pointer" onclick="showPlayerModal('${p.name}')">
+      <td class="px-3 py-2.5 font-mono text-emerald-700 font-semibold">${idx+1}</td>
+      <td class="px-3 py-2.5 font-semibold">${p.name}</td>
+      <td class="px-3 py-2.5 text-center font-mono tabular-nums">${p.points?.[0] || 0}</td>
+      <td class="px-3 py-2.5 text-center font-mono tabular-nums">${p.points?.[1] || 0}</td>
+      <td class="px-3 py-2.5 text-center font-mono tabular-nums bg-emerald-50">${p.points?.[2] || 0}</td>
+      <td class="px-3 py-2.5 text-center font-semibold font-mono tabular-nums">${p.total}</td>
+      <td class="px-3 py-2.5 text-center font-bold font-mono tabular-nums text-emerald-700">${p.adjusted}</td>
+      <td class="px-3 py-2.5 text-center font-mono">${p.weeksPlayed}</td>
+      <td class="px-3 py-2.5 text-center">${p.recent}</td>
+    </tr>
+  `).join('');
+}
+
+function filterStandings() {
+  const q = (document.getElementById('search-input').value || '').toLowerCase().trim();
+  if (!q) return renderStandings();
+  const all = computeStandings();
+  const filtered = all.filter(p => p.name.toLowerCase().includes(q));
+  renderStandings(filtered);
+}
+
+function sortStandings(col) {
+  // simple client sort on current view (re-render with sorted)
+  const all = computeStandings();
+  const keyMap = {0:'rank',1:'name',2:'w1',3:'w2',4:'w3',5:'total',6:'adjusted',7:'weeks'};
+  // For demo we just re-render sorted by adjusted or total
+  if (col === 5 || col === 6) {
+    all.sort((a,b) => (col===6 ? b.adjusted - a.adjusted : b.total - a.total));
+  }
+  renderStandings(all);
+}
+
+function renderHistory() {
+  const container = document.getElementById('history-list');
+  if (!seasonData.weeks || !seasonData.weeks.length) {
+    container.innerHTML = '<div class="col-span-full text-center text-slate-400 py-8">No weeks recorded yet.</div>';
+    return;
+  }
+  container.innerHTML = seasonData.weeks.map(w => {
+    const n = computeEffectiveN(w.rawEntries || [], w.additionalUnscored, w.declaredAttendingN);
+    const top = [...(w.rawEntries||[])].sort((a,b)=>b.gamesWon-a.gamesWon)[0];
+    return `
+      <div onclick="loadWeekForEditing(${w.weekNum})" class="cursor-pointer border rounded-3xl p-4 bg-white hover:border-emerald-400 transition">
+        <div class="flex justify-between">
+          <div class="font-semibold">Week ${w.weekNum} ${w.date ? '• '+w.date : ''}</div>
+          <div class="text-emerald-600 text-xs font-mono">N=${n}</div>
+        </div>
+        <div class="text-sm mt-2">${(w.rawEntries||[]).length} scored players${w.additionalUnscored ? ' + '+w.additionalUnscored+' unscored' : ''}</div>
+        <div class="text-xs mt-1 text-slate-500">Top: ${top ? top.name + ' ('+top.gamesWon+' games)' : '—'}</div>
+        <div class="mt-2 text-[10px] text-emerald-700 font-medium">Click to review / correct scores →</div>
+      </div>`;
+  }).join('');
+}
+
+function showPlayerModal(name) {
+  const p = seasonData.players.find(x => x.name === name);
+  if (!p) return;
+  const html = `
+    <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-[200]" onclick="this.remove()">
+      <div onclick="event.stopImmediatePropagation()" class="bg-white max-w-md w-full mx-3 rounded-3xl p-6">
+        <div class="font-display text-2xl font-semibold">${name}</div>
+        <div class="text-emerald-600">Adjusted Total: <span class="font-mono font-bold">${getAdjustedTotal(p)}</span></div>
+        
+        <div class="mt-4 text-sm">
+          <div class="font-medium mb-1">Weekly Points</div>
+          ${(p.points||[]).map((pt,i) => `<div class="flex justify-between py-0.5"><div>Week ${i+1}</div><div class="font-mono">${pt||0}</div></div>`).join('')}
+        </div>
+        
+        <div class="mt-4 text-xs text-slate-500">Raw per-week games and court data available in Admin → Review Past Weeks for full history.</div>
+        <button onclick="this.closest('.fixed').remove()" class="mt-5 w-full py-2 text-sm rounded-2xl border">Close</button>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function showTab(tab) {
+  document.getElementById('view-standings').classList.toggle('hidden', tab !== 'standings');
+  document.getElementById('view-history').classList.toggle('hidden', tab !== 'history');
+  document.querySelectorAll('.tab-link').forEach(el => el.classList.remove('nav-active'));
+  document.getElementById('tab-'+tab).classList.add('nav-active');
+  if (tab === 'history') renderHistory();
+}
+
+// ==================== ADMIN & OCR ====================
+function showAdminGate() {
+  document.getElementById('admin-gate-modal').classList.remove('hidden');
+  document.getElementById('admin-pass').focus();
+  document.getElementById('admin-pass').select();
+}
+
+function hideAdminGate() {
+  document.getElementById('admin-gate-modal').classList.add('hidden');
+}
+
+function attemptAdminLogin() {
+  const user = document.getElementById('admin-user').value.trim();
+  const pass = document.getElementById('admin-pass').value.trim();
+  if (user === 'tennisadmin' && pass === 'riverside306!') {
+    isAdmin = true;
+    hideAdminGate();
+    document.getElementById('admin-portal').classList.remove('hidden');
+    renderPastWeeksList();
+    // show review section if there is pending review? no
+    alert('Welcome, organizer. All changes are local until you export a snapshot.');
+  } else {
+    alert('Incorrect credentials. (Exact: tennisadmin / riverside306!)');
+  }
+}
+
+function logoutAdmin() {
+  isAdmin = false;
+  document.getElementById('admin-portal').classList.add('hidden');
+}
+
+// Robust photo handler (iOS + desktop hardened)
+function handlePhotoFiles(files) {
+  if (!files || !files.length) return;
+  const status = document.getElementById('ocr-status');
+  status.classList.remove('hidden');
+  status.textContent = `Processing ${files.length} photo(s)... (Tesseract running in browser)`;
+  
+  const promises = Array.from(files).map(file => preprocessAndOCR(file));
+  Promise.all(promises).then(results => {
+    // Merge all parsed entries
+    currentReviewData = [];
+    results.forEach(r => { if (r && r.length) currentReviewData.push(...r); });
+    status.textContent = `OCR complete — ${currentReviewData.length} rows found. Review & edit below.`;
+    renderReviewTable();
+    document.getElementById('review-section').classList.remove('hidden');
+  }).catch(err => {
+    status.textContent = 'OCR had issues: ' + err.message + '. Use paste fallback or manual entry.';
+    document.getElementById('review-section').classList.remove('hidden');
+  });
+}
+
+async function preprocessAndOCR(file) {
+  // Simple but effective browser preprocessing for better Tesseract on score sheets
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d', {willReadFrequently:true});
+      // Downscale for speed/memory on phone
+      const scale = Math.min(1.6, 1400 / img.width);
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      
+      // Contrast + grayscale + threshold (huge win for OCR accuracy)
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < imgData.data.length; i += 4) {
+        const gray = 0.299*imgData.data[i] + 0.587*imgData.data[i+1] + 0.114*imgData.data[i+2];
+        const boosted = gray < 140 ? 0 : 255; // aggressive binarize
+        imgData.data[i] = imgData.data[i+1] = imgData.data[i+2] = boosted;
+      }
+      ctx.putImageData(imgData, 0, 0);
+      
+      try {
+        const worker = await Tesseract.createWorker('eng');
+        await worker.setParameters({ tessedit_pageseg_mode: '6' }); // assume uniform block of text
+        const { data: { text } } = await worker.recognize(canvas);
+        await worker.terminate();
+        resolve(parseOCRTextToEntries(text));
+      } catch(e) { reject(e); }
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function parseOCRTextToEntries(text) {
+  // Very simple robust parser tuned to typical Riverside score sheets (court + name + numbers)
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const entries = [];
+  let currentCourt = 1;
+  lines.forEach(line => {
+    // Detect court headers like "Court 1" or just numbers at start
+    const courtMatch = line.match(/court\s*(\d+)/i);
+    if (courtMatch) { currentCourt = parseInt(courtMatch[1]); return; }
+    
+    // Name + 3-5 numbers (sets + games or just games)
+    const nums = (line.match(/\d+/g) || []).map(Number);
+    if (nums.length < 1) return;
+    // crude name extraction: everything before first number
+    let namePart = line.replace(/[\d\-:]+/g, ' ').replace(/\s+/g,' ').trim();
+    if (!namePart || namePart.length < 2) return;
+    
+    const games = nums.length >= 4 ? nums[3] : (nums[nums.length-1] || 0);
+    const canon = findBestCanonical(namePart);
+    entries.push({
+      id: 'ocr-'+Date.now()+'-'+entries.length,
+      court: currentCourt,
+      rawName: namePart,
+      name: canon,
+      set1: nums[0]||0, set2: nums[1]||0, set3: nums[2]||0,
+      gamesWon: games
+    });
+  });
+  return entries;
+}
+
+function parsePastedText() {
+  const txt = document.getElementById('ocr-paste').value.trim();
+  if (!txt) return alert('Paste some text first');
+  currentReviewData = parseOCRTextToEntries(txt);
+  renderReviewTable();
+  document.getElementById('review-section').classList.remove('hidden');
+}
+
+function renderReviewTable() {
+  const tbody = document.getElementById('review-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = currentReviewData.map((row, idx) => `
+    <tr data-idx="${idx}">
+      <td><input value="${row.court || ''}" onchange="updateReviewRow(${idx}, 'court', this.value)" class="w-10"></td>
+      <td>
+        <input value="${row.name || row.rawName}" onchange="updateReviewRow(${idx}, 'name', this.value)" class="w-full font-medium">
+        <div class="text-[10px] text-emerald-600">${row.rawName !== row.name ? '→ canonical' : ''}</div>
+      </td>
+      <td class="text-center"><input value="${row.set1||''}" onchange="updateReviewRow(${idx}, 'set1', this.value)" class="w-12 text-center"></td>
+      <td class="text-center"><input value="${row.set2||''}" onchange="updateReviewRow(${idx}, 'set2', this.value)" class="w-12 text-center"></td>
+      <td class="text-center"><input value="${row.set3||''}" onchange="updateReviewRow(${idx}, 'set3', this.value)" class="w-12 text-center"></td>
+      <td class="text-center"><input value="${row.gamesWon||''}" onchange="updateReviewRow(${idx}, 'gamesWon', this.value)" class="w-14 text-center font-bold text-emerald-700"></td>
+      <td><button onclick="deleteReviewRow(${idx})" class="text-red-400 hover:text-red-600 px-1">×</button></td>
+    </tr>
+  `).join('');
+}
+
+function updateReviewRow(idx, field, val) {
+  if (!currentReviewData[idx]) return;
+  if (['court','set1','set2','set3','gamesWon'].includes(field)) {
+    currentReviewData[idx][field] = parseInt(val) || 0;
+  } else {
+    currentReviewData[idx][field] = val;
+    if (field === 'name') currentReviewData[idx].name = findBestCanonical(val);
+  }
+  // live refresh preview on big changes
+  if (field === 'gamesWon' || field === 'name') recomputeLivePreview();
+}
+
+function addReviewRow() {
+  currentReviewData.push({
+    id: 'manual-'+Date.now(),
+    court: 1, rawName: '', name: '', set1:0, set2:0, set3:0, gamesWon: 0
+  });
+  renderReviewTable();
+}
+
+function deleteReviewRow(idx) {
+  currentReviewData.splice(idx,1);
+  renderReviewTable();
+}
+
+function recomputeLivePreview() {
+  const preview = document.getElementById('points-preview');
+  const unscored = parseInt(document.getElementById('new-unscored').value) || 0;
+  const declared = parseInt(document.getElementById('new-declared-n').value) || 0;
+  const effN = computeEffectiveN(currentReviewData, unscored, declared || null);
+  
+  const {pointsMap} = allocatePointsForWeek(currentReviewData, effN);
+  
+  let html = `<div class="font-bold text-emerald-400 mb-1">LIVE PREVIEW — Effective N = ${effN} (global rank by games won)</div>`;
+  const sorted = [...currentReviewData].sort((a,b)=>b.gamesWon-a.gamesWon);
+  sorted.forEach((e,i) => {
+    const pts = pointsMap[e.name] || 0;
+    html += `<div>${(i+1).toString().padStart(2)} • ${e.name.padEnd(16)} G:${String(e.gamesWon).padStart(2)} → <span class="text-white font-bold">${pts} pts</span></div>`;
+  });
+  preview.innerHTML = html;
+  preview.classList.remove('hidden');
+}
+
+function exportWeekXLSX() {
+  if (!currentReviewData.length) return alert('Nothing to export yet');
+  const wsData = [['Court','Player','Set1','Set2','Set3','Games Won']];
+  currentReviewData.forEach(r => wsData.push([r.court, r.name, r.set1||'', r.set2||'', r.set3||'', r.gamesWon]));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  XLSX.utils.book_append_sheet(wb, ws, 'Week Review');
+  XLSX.writeFile(wb, `riverside-week-review.xlsx`);
+}
+
+function importWeekXLSX(input) {
+  const f = input.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1});
+    currentReviewData = [];
+    rows.slice(1).forEach((r,i) => {
+      if (!r[1]) return;
+      currentReviewData.push({
+        id:'imp-'+i, court: r[0]||1, rawName:r[1], name:findBestCanonical(r[1]),
+        set1:r[2]||0, set2:r[3]||0, set3:r[4]||0, gamesWon:r[5]||0
+      });
+    });
+    renderReviewTable();
+    alert('Imported ' + currentReviewData.length + ' rows from spreadsheet.');
+  };
+  reader.readAsArrayBuffer(f);
+  input.value='';
+}
+
+function processAndCommitWeek() {
+  if (!currentReviewData.length) return alert('Add some rows first');
+  const weekNum = parseInt(document.getElementById('new-week-num').value) || (seasonData.currentWeek + 1);
+  const unscored = parseInt(document.getElementById('new-unscored').value) || 0;
+  const declared = parseInt(document.getElementById('new-declared-n').value) || 0;
+  
+  const effN = computeEffectiveN(currentReviewData, unscored, declared || null);
+  const {pointsMap} = allocatePointsForWeek(currentReviewData, effN);
+  
+  // Update or add the week
+  let week = seasonData.weeks.find(w => w.weekNum === weekNum);
+  if (!week) {
+    week = { weekNum, rawEntries: [], additionalUnscored: unscored, declaredAttendingN: effN, date: '' };
+    seasonData.weeks.push(week);
+  }
+  week.rawEntries = currentReviewData.map(r => ({...r}));
+  week.additionalUnscored = unscored;
+  week.declaredAttendingN = effN;
+  // Persist date for GS WeeklyRaw exports
+  const dval = document.getElementById('new-week-date') ? document.getElementById('new-week-date').value : '';
+  if (dval) week.date = dval;
+  
+  // Apply points to players (only for scored players)
+  seasonData.players.forEach(p => {
+    if (!p.points) p.points = [];
+    const newPts = pointsMap[p.name];
+    if (newPts !== undefined) {
+      p.points[weekNum-1] = newPts;
+    }
+  });
+  
+  seasonData.currentWeek = Math.max(seasonData.currentWeek, weekNum);
+  saveData();
+  renderAll();
+  
+  document.getElementById('review-section').classList.add('hidden');
+  currentReviewData = [];
+  alert(`Week ${weekNum} committed with effective N=${effN}. Standings updated.`);
+  showTab('standings');
+}
+
+function renderPastWeeksList() {
+  const el = document.getElementById('past-weeks-list');
+  if (!seasonData.weeks || !seasonData.weeks.length) {
+    el.innerHTML = '<div class="text-xs text-slate-400">No committed weeks yet.</div>';
+    return;
+  }
+  el.innerHTML = seasonData.weeks.map(w => `
+    <div onclick="loadWeekForEditing(${w.weekNum})" class="cursor-pointer border rounded-2xl p-3 text-sm hover:border-amber-400 bg-white">
+      Week ${w.weekNum} — ${w.rawEntries ? w.rawEntries.length : 0} scored + ${w.additionalUnscored||0} unscored
+      <div class="text-[10px] text-amber-600">Click to edit &amp; re-allocate</div>
+    </div>
+  `).join('');
+}
+
+function loadWeekForEditing(weekNum) {
+  const week = seasonData.weeks.find(w => w.weekNum === weekNum);
+  if (!week) return;
+  
+  currentReviewData = (week.rawEntries || []).map(r => ({...r}));
+  document.getElementById('new-week-num').value = week.weekNum;
+  document.getElementById('new-unscored').value = week.additionalUnscored || 0;
+  document.getElementById('new-declared-n').value = week.declaredAttendingN || '';
+  // Support date for GS WeeklyRaw export (store if present on week object)
+  const dateInput = document.getElementById('new-week-date');
+  if (dateInput) dateInput.value = week.date || '';
+  
+  renderReviewTable();
+  document.getElementById('review-section').classList.remove('hidden');
+  document.getElementById('points-preview').classList.add('hidden');
+  
+  // Override the big commit button for historical mode
+  const btns = document.querySelectorAll('#review-section button');
+  btns.forEach(b => {
+    if (b.textContent.includes('CALCULATE POINTS')) {
+      b.onclick = () => saveWeekEditsAndReallocate(weekNum);
+      b.innerHTML = '<i class="fa-solid fa-redo"></i> SAVE EDITS + RE-ALLOCATE ONLY THIS WEEK';
+    }
+  });
+  
+  alert('Loaded Week ' + weekNum + ' into editor. Make changes, then use the orange re-allocate button.');
+}
+
+function saveWeekEditsAndReallocate(weekNum) {
+  const week = seasonData.weeks.find(w => w.weekNum === weekNum);
+  if (!week) return;
+  
+  const unscored = parseInt(document.getElementById('new-unscored').value) || 0;
+  const declared = parseInt(document.getElementById('new-declared-n').value) || 0;
+  const effN = computeEffectiveN(currentReviewData, unscored, declared || null);
+  
+  const {pointsMap} = allocatePointsForWeek(currentReviewData, effN);
+  
+  week.rawEntries = currentReviewData.map(r => ({...r}));
+  week.additionalUnscored = unscored;
+  week.declaredAttendingN = effN;
+  // Persist date for GS WeeklyRaw exports
+  const dval2 = document.getElementById('new-week-date') ? document.getElementById('new-week-date').value : '';
+  if (dval2) week.date = dval2;
+  
+  // Re-apply only this week's points
+  seasonData.players.forEach(p => {
+    if (!p.points) p.points = [];
+    const newP = pointsMap[p.name];
+    if (newP !== undefined) p.points[weekNum-1] = newP;
+    else if (p.points[weekNum-1]) p.points[weekNum-1] = 0; // players removed get 0
+  });
+  
+  saveData();
+  renderAll();
+  document.getElementById('review-section').classList.add('hidden');
+  currentReviewData = [];
+  alert('Week ' + weekNum + ' corrected and re-allocated. All standings updated.');
+  showTab('standings');
+}
+
+function rebuildAllFromRawWeeks() {
+  if (!confirm('This will completely recompute every player\'s points from the stored raw week data. Continue?')) return;
+  
+  // Zero all
+  seasonData.players.forEach(p => p.points = new Array(seasonData.currentWeek).fill(0));
+  
+  seasonData.weeks.forEach(w => {
+    const effN = computeEffectiveN(w.rawEntries || [], w.additionalUnscored, w.declaredAttendingN);
+    const {pointsMap} = allocatePointsForWeek(w.rawEntries || [], effN);
+    seasonData.players.forEach(p => {
+      if (pointsMap[p.name]) p.points[w.weekNum-1] = pointsMap[p.name];
+    });
+  });
+  saveData();
+  renderAll();
+  alert('Full season rebuilt from raw data. All history preserved.');
+}
+
+// ==================== GOOGLE SHEETS ZERO-FRICTION HELPERS (WeeklyRaw + WeekMeta ideal format) ====================
+// Concrete design for organizer's Google Sheets (paste from here = zero reformatting):
+// 
+// 1. "AllWeeksRaw" TAB (ONE BIG TABLE for all history — RECOMMENDED):
+//    Headers (row 1): Week	Date	Court	Player	Set1	Set2	Set3	GamesWon	Notes
+//    - Append data rows for every week forever. Filter/SORT/QUERY by Week col.
+//    - Only real scored players here. Court groups preserved for future analytics.
+// 
+// 2. "WeekMeta" TAB (tiny companion — 1 row per week):
+//    Headers: Week	Date	Scored	Unscored	EffectiveN	MissingCourtNote
+//    - This is where you declare "X unscored players on missing courts" cleanly.
+//    - Use VLOOKUP or QUERY to pull Unscored into calculations or dashboards.
+// 
+// Why this? One flat append-only raw table is GS gold standard (easy pivots, charts, scripts).
+// Unscored/missing courts never pollutes player rows. Paste is literally 2 clicks + Ctrl-V.
+// The site generates EXACT tab-separated text matching these headers (no extra columns, perfect order).
+
+function getWeekMetaValues() {
+  const weekNum = parseInt(document.getElementById('new-week-num').value) || 4;
+  let dateStr = document.getElementById('new-week-date').value || '';
+  if (!dateStr) {
+    // sensible default for demo
+    const d = new Date();
+    dateStr = d.toISOString().slice(0,10);
+  }
+  const unscored = parseInt(document.getElementById('new-unscored').value) || 0;
+  const declared = parseInt(document.getElementById('new-declared-n').value) || 0;
+  const scored = currentReviewData.length;
+  const effN = computeEffectiveN(currentReviewData, unscored, declared || null);
+  const note = unscored > 0 ? `${unscored} unscored players on missing court(s)` : 'All courts played';
+  return { weekNum, dateStr, scored, unscored, effN, note };
+}
+
+function generateWeeklyRawTSV(includeHeader = false) {
+  const { weekNum, dateStr } = getWeekMetaValues();
+  const rows = [];
+  if (includeHeader) {
+    rows.push(['Week', 'Date', 'Court', 'Player', 'Set1', 'Set2', 'Set3', 'GamesWon', 'Notes'].join('\t'));
+  }
+  currentReviewData.forEach(r => {
+    const player = r.name || r.rawName || 'Unknown';
+    const note = '';
+    rows.push([
+      weekNum,
+      dateStr,
+      r.court || '',
+      player,
+      r.set1 || '',
+      r.set2 || '',
+      r.set3 || '',
+      r.gamesWon || '',
+      note
+    ].join('\t'));
+  });
+  return rows.join('\n');
+}
+
+function generateWeekMetaTSV(includeHeader = false) {
+  const { weekNum, dateStr, scored, unscored, effN, note } = getWeekMetaValues();
+  const rows = [];
+  if (includeHeader) {
+    rows.push(['Week', 'Date', 'Scored', 'Unscored', 'EffectiveN', 'MissingCourtNote'].join('\t'));
+  }
+  rows.push([weekNum, dateStr, scored, unscored, effN, note].join('\t'));
+  return rows.join('\n');
+}
+
+function refreshGSPreview() {
+  if (!currentReviewData || currentReviewData.length === 0) {
+    alert('Add some rows to the review table first (via photo, paste, or manual).');
+    return;
+  }
+  const rawTA = document.getElementById('gs-raw-tsv');
+  const metaTA = document.getElementById('gs-meta-tsv');
+  if (!rawTA || !metaTA) return;
+
+  rawTA.value = generateWeeklyRawTSV(false);   // data rows only — append under header in Sheets
+  metaTA.value = generateWeekMetaTSV(false);   // single meta row
+
+  // Also auto refresh points preview if open
+  if (!document.getElementById('points-preview').classList.contains('hidden')) {
+    recomputeLivePreview();
+  }
+}
+
+function copyGSTSV(textareaId, what) {
+  const ta = document.getElementById(textareaId);
+  if (!ta || !ta.value.trim()) {
+    // auto refresh if empty
+    refreshGSPreview();
+    if (!ta.value.trim()) return;
+  }
+  ta.select();
+  ta.setSelectionRange(0, 99999);
+  try {
+    document.execCommand('copy');
+    // modern fallback
+    if (navigator.clipboard) navigator.clipboard.writeText(ta.value);
+    const orig = ta.style.background;
+    ta.style.background = '#d1fae5';
+    setTimeout(() => { ta.style.background = orig || '#f8fafc'; }, 900);
+    // friendly toast
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 right-4 bg-emerald-800 text-white text-xs px-4 py-2 rounded-2xl shadow z-[300]';
+    toast.textContent = `✅ Copied ${what} — paste directly into Google Sheets (no changes needed)`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2400);
+  } catch(e) {
+    alert('Copied to clipboard manually: \n\n' + ta.value);
+  }
+}
+
+function quickParseAndShowGSPreview() {
+  const txt = document.getElementById('ocr-paste').value.trim();
+  if (!txt) return alert('Paste some text first in the Quick Paste box.');
+  currentReviewData = parseOCRTextToEntries(txt);  // re-use the robust parser (it already tolerates loose formats)
+  renderReviewTable();
+  document.getElementById('review-section').classList.remove('hidden');
+  // Immediately produce the GS perfect output
+  setTimeout(() => {
+    refreshGSPreview();
+    // scroll to the GS tools
+    const gsBox = document.getElementById('gs-raw-tsv');
+    if (gsBox) gsBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 120);
+}
+
+// Power-user helper (can be called from console or future button): copy both blocks at once
+function copyBothForGoogleSheets() {
+  refreshGSPreview();
+  const raw = document.getElementById('gs-raw-tsv').value;
+  const meta = document.getElementById('gs-meta-tsv').value;
+  const combined = '=== PASTE INTO AllWeeksRaw (data rows) ===\n' + raw + '\n\n=== PASTE INTO WeekMeta (one row) ===\n' + meta;
+  navigator.clipboard && navigator.clipboard.writeText(combined);
+  alert('Both blocks copied together (with section markers). Paste into the correct tabs in Google Sheets.');
+}
+
+function showGoogleSheetsSetup() {
+  const seeds = exportMigrationSeedsForSheets();
+  const html = `
+  <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-[300] p-4" onclick="this.remove()">
+    <div onclick="event.stopImmediatePropagation()" class="bg-white w-full max-w-5xl rounded-3xl p-8 shadow-2xl max-h-[92vh] overflow-auto text-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="font-display text-3xl font-semibold tracking-tighter text-emerald-700">Google Sheets Architecture — 2-Minute Setup</div>
+          <div class="text-emerald-600">Master list + Weekly Raw in Sheets. Site computes everything live. Phone-first for organizer.</div>
+        </div>
+        <button onclick="this.closest('.fixed').remove()" class="text-2xl text-slate-400 hover:text-black">×</button>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- LEFT: EXACT TABS + EXAMPLES -->
+        <div>
+          <div class="uppercase text-xs tracking-widest text-emerald-600 font-semibold mb-2">EXACT RECOMMENDED TAB STRUCTURE (5 tabs)</div>
+          
+          <div class="mb-4 p-3 bg-slate-50 rounded-2xl border">
+            <div class="font-semibold">1. Players</div>
+            <div class="font-mono text-[10px] mt-1">Name | Active | Aliases | Notes</div>
+            <div class="text-xs mt-1">49 rows. Add new players mid-season here (Active=Yes). Aliases for OCR (e.g. "Leah S.;Leigh S."). Phone edit = instant on site after refresh.</div>
+            <div class="text-[10px] mt-1 bg-white p-1 font-mono border">Chris K.	Yes	CK;Chris K.	<br>Leigh S.	Yes	Leah S.;Leah;LS	<br>Peter L.	No		Guest W3 only</div>
+          </div>
+
+          <div class="mb-4 p-3 bg-slate-50 rounded-2xl border">
+            <div class="font-semibold">2. RawScores (the weekly paste target — dead simple)</div>
+            <div class="font-mono text-[10px]">Week | Court | Player | RawName | Set1 | Set2 | Set3 | GamesWon | Date | Source</div>
+            <div class="text-xs mt-1">One huge append-only table. Paste TSV from the site's "Copy for Sheets" button at bottom of review table. Works great on phone Sheets app.</div>
+          </div>
+
+          <div class="mb-4 p-3 bg-slate-50 rounded-2xl border">
+            <div class="font-semibold">3. WeekMeta (handles unscored + special notes)</div>
+            <div class="font-mono text-[10px]">Week | Date | ScoredPlayers | UnscoredCount | EffectiveN | Note</div>
+            <div class="text-xs mt-1">One row per week. UnscoredCount + ScoredPlayers → EffectiveN used for point allocation (N - rank). W3 historical note lives here or in Config.</div>
+          </div>
+
+          <div class="mb-4 p-3 bg-slate-50 rounded-2xl border">
+            <div class="font-semibold">4. LegacyPoints (W1/W2 only — migration seed)</div>
+            <div class="font-mono text-[10px]">Player | Week | Points</div>
+            <div class="text-xs">Tall format. Only weeks without raw data. Future weeks never touch this.</div>
+          </div>
+
+          <div class="p-3 bg-slate-50 rounded-2xl border">
+            <div class="font-semibold">5. Config (key/value)</div>
+            <div class="text-xs">dropLowestWeeks=2 • totalWeeks=22 • historicalW3Note= (full per-court explanation) • scoringDescription</div>
+          </div>
+        </div>
+
+        <!-- RIGHT: SETUP + MIGRATION + CODE -->
+        <div class="space-y-4">
+          <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-3xl">
+            <div class="font-semibold text-emerald-800">2-MINUTE SETUP (Anyone with link — recommended)</div>
+            <ol class="list-decimal ml-5 text-xs mt-2 space-y-0.5">
+              <li>Create new Sheet "Riverside 2026 Live Data"</li>
+              <li>Create the 5 tabs exactly as named above. Put headers in row 1 of each.</li>
+              <li>Share → "Anyone with the link can view" (organizer keeps edit rights via their Google account)</li>
+              <li>Copy your Spreadsheet ID from the URL (long string after /d/ ) and paste it into GS_CONFIG.spreadsheetId at top of index.html (or Vercel env if you add a tiny /api later)</li>
+              <li>Click "Export Migration Seeds..." button (right below) → copy each block into the matching tab. Done. Site now reads live.</li>
+            </ol>
+            <div class="mt-2 text-[10px]">gviz read works instantly. No API key. Caching is client-side (10 min default, "Refresh" button forces fresh).</div>
+          </div>
+
+          <div class="p-4 border rounded-3xl">
+            <div class="font-semibold">For true one-tap "Append this week" from the site (optional, ~4 min)</div>
+            <div class="text-xs mt-1">Use Google Apps Script (no service account, no billing, runs on Google):</div>
+            <pre class="text-[9px] bg-slate-900 text-emerald-300 p-2 rounded-xl overflow-auto mt-1">function doPost(e) {
+  const d=JSON.parse(e.postData.contents);
+  if(d.secret!=='riverside-2026') return ContentService.createTextOutput('no');
+  const ss=SpreadsheetApp.getActive();
+  const rs=ss.getSheetByName('RawScores');
+  d.entries.forEach(en=>rs.appendRow([d.week,'',en.court,en.player,en.rawName,en.set1,en.set2,en.set3,en.gamesWon,d.date,'site']));
+  const wm=ss.getSheetByName('WeekMeta'); wm.appendRow([d.week,d.date,d.entries.length,d.unscored,d.effectiveN,'from site']);
+  return ContentService.createTextOutput(JSON.stringify({ok:true}));
+}</pre>
+            <div class="text-[10px] mt-1">Deploy → Web app → Execute as Me, Who has access: Anyone. Paste the /exec URL into GS_CONFIG.appsScriptUrl. Change token if desired.</div>
+          </div>
+
+          <div>
+            <button onclick="copyMigrationBlock('Players');" class="text-xs mr-1 px-3 py-1 bg-white border rounded-2xl">Copy Players Seed</button>
+            <button onclick="copyMigrationBlock('RawScores');" class="text-xs mr-1 px-3 py-1 bg-white border rounded-2xl">Copy RawScores Seed</button>
+            <button onclick="copyMigrationBlock('WeekMeta');" class="text-xs mr-1 px-3 py-1 bg-white border rounded-2xl">Copy WeekMeta Seed</button>
+            <button onclick="copyMigrationBlock('LegacyPoints');" class="text-xs mr-1 px-3 py-1 bg-white border rounded-2xl">Copy Legacy</button>
+            <button onclick="copyMigrationBlock('Config');" class="text-xs px-3 py-1 bg-white border rounded-2xl">Copy Config</button>
+            <div class="text-[10px] mt-1 text-slate-500">After pasting seeds into A1 of each tab, set the Sheet ID in code and hit "Refresh from Sheets".</div>
+          </div>
+
+          <div class="text-xs bg-amber-50 border border-amber-200 p-3 rounded-2xl">
+            <strong>Migration path from current JSON seeds:</strong> The export buttons above emit perfect TSV directly from the embedded master-players.json + historical-week-points.json + week3-raw.json. No manual typing. After first seed, future weeks only require appending to RawScores + 1 row in WeekMeta (or use the Apps Script one-tap).
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 text-[11px] text-center text-slate-500 border-t pt-4">
+        Public site reads with <code>fetch( https://docs.google.com/.../gviz/tq?... )</code> — zero cost, works on pure static Vercel. Organizer edits almost exclusively on phone in Sheets. Photo OCR on site is the only time they touch the website admin for "pretty validated paste".
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function copyMigrationBlock(tab) {
+  const seeds = exportMigrationSeedsForSheets();
+  const text = seeds[tab] || '';
+  navigator.clipboard.writeText(text).then(() => {
+    const t = document.createElement('div');
+    t.className = 'fixed bottom-4 right-4 bg-emerald-800 text-white px-4 py-2 rounded-2xl text-xs shadow z-[400]';
+    t.textContent = `Copied ${tab} TSV — paste into row 1 of the ${tab} tab`;
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(), 2200);
+  }).catch(()=> alert('Copy failed. Text:\\n' + text.slice(0,300)));
+}
+        <div class="text-xs text-slate-600">This row is generated perfectly by the site from the same inputs used for point calculation. Paste it once per week into your WeekMeta tab.</div>
+      </div>
+
+      <div class="mt-5 pt-4 border-t text-xs text-slate-500">
+        <strong>Exact copy/paste behavior the site now offers:</strong><br>
+        • After any photo OCR or Quick Paste → review table appears with live edit.<br>
+        • Edit names (auto-canonical), sets, games, courts, add/delete rows as needed.<br>
+        • Fill Week # + Date + Unscored count (the simplest declaration of missing courts).<br>
+        • Click "Refresh GS Preview" → two textareas populate with <strong>exact</strong> tab-separated text.<br>
+        • "COPY SCORED ROWS" → Ctrl-V into bottom of AllWeeksRaw (no edits ever needed).<br>
+        • "COPY WEEK META" → Ctrl-V into bottom of WeekMeta (declares the X unscored cleanly).<br>
+        • Bonus: Quick Paste box accepts ultra-loose phone text and can "Parse + Show GS-Ready TSV" in one step.<br>
+        • Also still have full .xlsx roundtrip for heavier review.
+      </div>
+      <button onclick="this.closest('.fixed').remove()" class="mt-5 w-full py-3 bg-emerald-700 text-white rounded-2xl font-semibold">Close — back to admin tools</button>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+// ==================== EXTRA EXPORTS ====================
+function exportMasterXLSX() {
+  const standings = computeStandings();
+  const wsData = [['Rank', "Player's Name", 'W1','W2','W3','Total','Adj Total']];
+  standings.forEach((p,i) => {
+    wsData.push([i+1, p.name, ...(p.points||[0,0,0]), p.total, p.adjusted]);
+  });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(wsData), 'Standings');
+  XLSX.writeFile(wb, `RiversideMasterTracker-Week${seasonData.currentWeek}.xlsx`);
+}
+
+function showDocs() {
+  const url = 'https://github.com/smeagster86/riverside-tuesday-tennis/blob/main/LEAGUE_LOGIC_CONSIDERATIONS.md';
+  window.open(url, '_blank');
+}
+
+// ==================== INIT ====================
+async function renderAll() {
+  await loadData(true); // Sheets-first
+  renderStandings();
+  renderHistory();
+}
+
+async function init() {
+  // Tailwind script already loaded
+  await renderAll();
+  
+  // Keyboard niceties
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && document.activeElement.tagName === 'BODY') {
+      e.preventDefault();
+      const s = document.getElementById('search-input');
+      if (s) s.focus();
+    }
+  });
+  
+  // Make drop zone nicer
+  const dz = document.getElementById('drop-zone');
+  if (dz) {
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('border-emerald-500','bg-emerald-100/60'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('border-emerald-500','bg-emerald-100/60'));
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); dz.classList.remove('border-emerald-500','bg-emerald-100/60');
+      handlePhotoFiles(e.dataTransfer.files);
+    });
+    dz.addEventListener('click', () => document.getElementById('file-input').click());
+  }
+  
+  // Initial message
+  console.log('%c[Riverside Tennis] Google Sheets integration active (Sheets-first load, gviz, zero-friction paste).', 'color:#166534');
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
